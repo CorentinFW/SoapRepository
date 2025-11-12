@@ -17,7 +17,7 @@ public class Gestionnaire {
         if (arrive == null || depart == null || !arrive.before(depart)) {
             return null;
         }
-
+//test des critères
         for (Hotel hotel : listeDHotel) {
             if (hotel == null) continue;
             if (adresse != null && !adresse.trim().isEmpty()) {
