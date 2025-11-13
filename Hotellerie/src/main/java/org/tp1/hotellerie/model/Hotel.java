@@ -10,6 +10,17 @@ public class Hotel {
     private List<Reservation> listeReservation = new ArrayList<>();
     private List<Chambre> listeDesChambres = new ArrayList<>();
 
+    // Nouveau constructeur par défaut (conserve compatibilité)
+    public Hotel() {
+    }
+
+    // Nouveau constructeur pratique
+    public Hotel(String nom, String adresse, Type type) {
+        this.nom = nom;
+        this.adresse = adresse;
+        this.type = type;
+    }
+
     public String getNom() {
         return nom;
     }
@@ -43,4 +54,11 @@ public class Hotel {
             this.listeReservation.add(reservation);
         }
     }
+
+    public void ajoutChambre(Chambre chambre) {
+        if (chambre != null) {
+            this.listeDesChambres.add(chambre);
+        }
+    }
+
 }

@@ -9,6 +9,14 @@ public class Reservation {
     private Date dateArrive;
     private Date dateDepart;
 
+    public Reservation(int id, Client client, Chambre chambre, Date dateArrive, Date dateDepart) {
+        this.id = id;
+        this.client = client;
+        this.chambre = chambre;
+        this.dateArrive = dateArrive;
+        this.dateDepart = dateDepart;
+    }
+
     public int getId() {
         return id;
     }

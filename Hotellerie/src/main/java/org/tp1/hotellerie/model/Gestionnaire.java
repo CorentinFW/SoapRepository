@@ -9,6 +9,10 @@ import java.util.List;
 public class Gestionnaire {
     private List<Hotel> listeDHotel = new ArrayList<>();
 
+    public List<Hotel> getListeDHotel() {
+        return listeDHotel;
+    }
+
     // Recherche une chambre selon des critères (implémentation minimale pour l’instant)
     public Chambre recherche(String adresse, String dateArrive, String dateDepart,
                              float prixMax, float prixMin, int nbrEtoile, int client) {

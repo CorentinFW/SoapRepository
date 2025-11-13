@@ -5,6 +5,12 @@ public class Client {
     private String prenom;
     private String numeroCarteBleue;
 
+    public Client(String nom, String prenom, String numeroCarteBleue) {
+        this.nom = nom;
+        this.prenom = prenom;
+        this.numeroCarteBleue = numeroCarteBleue;
+    }
+
     public String getNom() {
         return nom;
     }
