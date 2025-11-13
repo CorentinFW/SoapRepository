@@ -1,47 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>2.7.18</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <relativePath/>
     </parent>
-    <groupId>org.TP1</groupId>
-    <artifactId>Hotellerie</artifactId>
+
+    <groupId>org.tp1</groupId>
+    <artifactId>Agence</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>Hotellerie</name>
-    <description>Hotellerie</description>
-    <url/>
-    <licenses>
-        <license/>
-    </licenses>
-    <developers>
-        <developer/>
-    </developers>
-    <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
-    </scm>
+    <name>Agence</name>
+    <description>Agence SOAP - Intermediaire entre Client REST et Hotels SOAP</description>
+
     <properties>
         <java.version>8</java.version>
     </properties>
+
     <dependencies>
+        <!-- Spring Boot Web pour REST (recevoir requêtes du client) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Spring Boot Web Services pour SOAP -->
+        <!-- Spring Boot Web Services pour SOAP (communiquer avec les hôtels) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web-services</artifactId>
         </dependency>
 
-        <!-- WSDL4J pour générer le WSDL -->
+        <!-- WSDL4J pour générer et consommer WSDL -->
         <dependency>
             <groupId>wsdl4j</groupId>
             <artifactId>wsdl4j</artifactId>
@@ -66,6 +60,7 @@
             <version>2.3.0</version>
         </dependency>
 
+        <!-- Spring Boot Starter Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -80,7 +75,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
 
-            <!-- Plugin pour générer les classes Java à partir du XSD -->
+            <!-- Plugin pour générer les classes Java à partir du WSDL de l'hôtel -->
             <plugin>
                 <groupId>org.jvnet.jaxb2.maven2</groupId>
                 <artifactId>maven-jaxb2-plugin</artifactId>
@@ -93,14 +88,14 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <schemaDirectory>${project.basedir}/src/main/resources/xsd</schemaDirectory>
+                    <schemaDirectory>${project.basedir}/src/main/resources/wsdl</schemaDirectory>
                     <schemaIncludes>
-                        <include>*.xsd</include>
+                        <include>*.wsdl</include>
                     </schemaIncludes>
-                    <generatePackage>org.tp1.hotellerie.soap.generated</generatePackage>
+                    <generatePackage>org.tp1.agence.wsdl.hotel</generatePackage>
                 </configuration>
             </plugin>
         </plugins>
     </build>
-
 </project>
+
