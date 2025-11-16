@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<bindings xmlns="http://java.sun.com/xml/ns/jaxb" if-exists="true" version="2.1">
+  <!--
+
+Ce fichier a été généré par l'implémentation de référence JavaTM Architecture for XML Binding (JAXB), v2.3.0 
+Voir <a href="https://javaee.github.io/jaxb-v2/">https://javaee.github.io/jaxb-v2/</a> 
+Toute modification apportée à ce fichier sera perdue lors de la recompilation du schéma source. 
+Généré le : 2025.11.16 à 02:13:24 PM CET 
+
+  -->
+  <bindings xmlns:tns="http://tp1.org/agence/soap" if-exists="true" scd="x-schema::tns">
+    <schemaBindings map="false">
+      <package name="org.tp1.client.wsdl.agence"/>
+    </schemaBindings>
+    <bindings if-exists="true" scd="tns:pingRequest">
+      <class ref="org.tp1.client.wsdl.agence.PingRequest"/>
+    </bindings>
+    <bindings if-exists="true" scd="tns:pingResponse">
+      <class ref="org.tp1.client.wsdl.agence.PingResponse"/>
+    </bindings>
+    <bindings if-exists="true" scd="tns:rechercherChambresRequest">
+      <class ref="org.tp1.client.wsdl.agence.RechercherChambresRequest"/>
+    </bindings>
+    <bindings if-exists="true" scd="tns:rechercherChambresResponse">
+      <class ref="org.tp1.client.wsdl.agence.RechercherChambresResponse"/>
+    </bindings>
+    <bindings if-exists="true" scd="~tns:chambre">
+      <class ref="org.tp1.client.wsdl.agence.Chambre"/>
+    </bindings>
+    <bindings if-exists="true" scd="tns:effectuerReservationRequest">
+      <class ref="org.tp1.client.wsdl.agence.EffectuerReservationRequest"/>
+    </bindings>
+    <bindings if-exists="true" scd="~tns:client">
+      <class ref="org.tp1.client.wsdl.agence.Client"/>
+    </bindings>
+    <bindings if-exists="true" scd="tns:effectuerReservationResponse">
+      <class ref="org.tp1.client.wsdl.agence.EffectuerReservationResponse"/>
+    </bindings>
+  </bindings>
+</bindings>

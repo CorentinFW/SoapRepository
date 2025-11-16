@@ -1,0 +1,14 @@
+org/tp1/client/soap/AgenceSoapClient.class
+org/tp1/client/wsdl/agence/PingResponse.class
+org/tp1/client/wsdl/agence/PingRequest.class
+org/tp1/client/wsdl/agence/ObjectFactory.class
+org/tp1/client/ClientApplication.class
+org/tp1/client/wsdl/agence/Client.class
+org/tp1/client/config/SoapClientConfig.class
+org/tp1/client/wsdl/agence/RechercherChambresRequest.class
+org/tp1/client/wsdl/agence/EffectuerReservationResponse.class
+org/tp1/client/wsdl/agence/EffectuerReservationRequest.class
+org/tp1/client/wsdl/agence/Chambre.class
+org/tp1/client/cli/ClientCLISoap.class
+org/tp1/client/wsdl/agence/RechercherChambresResponse.class
+org/tp1/client/wsdl/agence/package-info.class
