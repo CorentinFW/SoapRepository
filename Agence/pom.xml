@@ -89,29 +89,23 @@
                             <outputDirectory>${project.basedir}/target/generated-sources/jaxb</outputDirectory>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>xjc-hotel</id>
+                        <goals>
+                            <goal>xjc</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.basedir}/src/main/resources/xsd/hotel.xsd</source>
+                            </sources>
+                            <packageName>org.tp1.agence.wsdl.hotel</packageName>
+                            <clearOutputDir>false</clearOutputDir>
+                            <outputDirectory>${project.basedir}/target/generated-sources/jaxb</outputDirectory>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
 
-            <!-- Plugin pour générer les classes Java à partir du WSDL de l'hôtel -->
-            <plugin>
-                <groupId>org.jvnet.jaxb2.maven2</groupId>
-                <artifactId>maven-jaxb2-plugin</artifactId>
-                <version>0.14.0</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <schemaDirectory>${project.basedir}/src/main/resources/wsdl</schemaDirectory>
-                    <schemaIncludes>
-                        <include>*.wsdl</include>
-                    </schemaIncludes>
-                    <generatePackage>org.tp1.agence.wsdl.hotel</generatePackage>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
 </project>
