@@ -2,7 +2,7 @@ package org.tp1.agence.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.tp1.agence.client.RealHotelSoapClient;
+import org.tp1.agence.client.MultiHotelSoapClient;
 import org.tp1.agence.dto.ChambreDTO;
 import org.tp1.agence.dto.RechercheRequest;
 import org.tp1.agence.dto.ReservationRequest;
@@ -17,7 +17,7 @@ import java.util.List;
 public class AgenceService {
 
     @Autowired
-    private RealHotelSoapClient hotelSoapClient;
+    private MultiHotelSoapClient hotelSoapClient;
 
     /**
      * Recherche des chambres disponibles dans tous les hôtels

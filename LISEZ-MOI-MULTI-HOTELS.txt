@@ -1,0 +1,74 @@
+🏨 SYSTÈME DE RÉSERVATION MULTI-HÔTELS
+========================================
+
+✅ IMPLÉMENTATION TERMINÉE - PRÊT POUR TESTS
+
+📋 DÉMARRAGE RAPIDE
+--------------------
+./start-robuste.sh         → ⭐ Recommandé (vérifications complètes)
+./premier-test.sh          → Premier test guidé
+./start-system-soap.sh     → Lancer tout le système
+./test-3-hotels.sh         → Vérifier les services
+
+⚠️  PROBLÈME "Connexion refusée" ?
+   Voir: DEPANNAGE_CONNEXION.md
+
+📚 DOCUMENTATION
+-----------------
+INDEX.md                   → 📖 Naviguer dans la documentation
+IMPLEMENTATION_COMPLETE.md → ✅ État complet du projet
+README_MULTI_HOTELS.md     → 🚀 Guide utilisateur
+GUIDE_TEST.md             → 🧪 Scénarios de test
+MULTI_HOTELS_CONFIG.md    → ⚙️ Configuration détaillée
+CHANGELOG_TECHNIQUE.md    → 🔧 Détails techniques
+
+🏨 SERVICES
+-----------
+Paris       → Port 8082 (5⭐) - 5 chambres
+Lyon        → Port 8083 (4⭐) - 5 chambres
+Montpellier → Port 8084 (3⭐) - 5 chambres
+Agence      → Port 8081 (agrégateur)
+
+🎯 ARCHITECTURE
+---------------
+Client CLI → Agence → [Paris, Lyon, Montpellier]
+100% SOAP - Pas de REST
+
+📊 STATISTIQUES
+---------------
+• 3 modules (Hotellerie, Agence, Client)
+• 4 services (3 hôtels + 1 agence)
+• 15 chambres au total
+• Prix: 45€ - 200€
+
+🔍 COMMANDES UTILES
+-------------------
+# Logs
+tail -f /tmp/agence.log
+
+# Vérifier ports
+netstat -tuln | grep 808
+
+# Compiler
+cd Hotellerie && mvn clean compile
+
+🐛 DÉPANNAGE
+------------
+"Connexion refusée" → Voir DEPANNAGE_CONNEXION.md
+Port occupé → netstat + kill -9
+Service KO  → tail -f /tmp/*.log
+Voir GUIDE_TEST.md section Dépannage
+
+✨ PROCHAINE ÉTAPE
+------------------
+./start-robuste.sh  (recommandé - plus fiable)
+
+OU
+
+./premier-test.sh
+
+Puis suivre les instructions dans le client CLI.
+
+📅 Dernière MAJ: 2025-11-17
+🚀 Version: 1.0 Multi-Hôtels
+

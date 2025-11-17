@@ -2,7 +2,7 @@ package org.tp1.agence.client;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
-import org.springframework.stereotype.Component;
+// import org.springframework.stereotype.Component;
 import org.springframework.ws.client.core.support.WebServiceGatewaySupport;
 import org.tp1.agence.dto.ChambreDTO;
 import org.tp1.agence.dto.RechercheRequest;
@@ -15,8 +15,9 @@ import java.util.List;
 
 /**
  * Client SOAP réel pour communiquer avec l'Hotellerie
+ * [DÉSACTIVÉ] Remplacé par MultiHotelSoapClient qui gère plusieurs hôtels
  */
-@Component
+// @Component - DÉSACTIVÉ: Remplacé par MultiHotelSoapClient
 public class RealHotelSoapClient extends WebServiceGatewaySupport {
 
     @Value("${hotel.soap.url}")

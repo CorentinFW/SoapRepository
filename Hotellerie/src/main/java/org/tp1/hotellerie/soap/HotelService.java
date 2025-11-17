@@ -1,5 +1,6 @@
 package org.tp1.hotellerie.soap;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.tp1.hotellerie.model.*;
 
@@ -20,17 +21,56 @@ public class HotelService {
     private Hotel hotel;
     private AtomicInteger reservationIdCounter = new AtomicInteger(1);
 
+    @Value("${hotel.nom:Grand Hotel Paris}")
+    private String hotelNom;
+
+    @Value("${hotel.adresse:10 Rue de la Paix, Paris}")
+    private String hotelAdresse;
+
+    @Value("${hotel.categorie:CAT5}")
+    private String hotelCategorie;
+
+    @Value("${hotel.ville:Paris}")
+    private String hotelVille;
+
     @PostConstruct
     public void init() {
-        // Initialiser l'hôtel avec des données de test
-        hotel = new Hotel("Grand Hotel Paris", "10 Rue de la Paix, Paris", Type.CAT5);
+        // Convertir la catégorie String en Type enum
+        Type type = Type.valueOf(hotelCategorie);
 
-        // Ajouter quelques chambres
-        hotel.ajoutChambre(new Chambre(1, "Chambre Simple", 80.0f, 1));
-        hotel.ajoutChambre(new Chambre(2, "Chambre Double", 120.0f, 2));
-        hotel.ajoutChambre(new Chambre(3, "Suite Deluxe", 200.0f, 3));
-        hotel.ajoutChambre(new Chambre(4, "Chambre Familiale", 150.0f, 4));
-        hotel.ajoutChambre(new Chambre(5, "Chambre Economy", 60.0f, 1));
+        // Initialiser l'hôtel avec des données de configuration
+        hotel = new Hotel(hotelNom, hotelAdresse, type);
+
+        System.out.println("═══════════════════════════════════════════");
+        System.out.println("  Initialisation Hôtel: " + hotelVille);
+        System.out.println("  Nom: " + hotelNom);
+        System.out.println("  Adresse: " + hotelAdresse);
+        System.out.println("  Catégorie: " + type);
+        System.out.println("═══════════════════════════════════════════");
+
+        // Ajouter des chambres différentes selon la ville
+        if ("Paris".equals(hotelVille)) {
+            hotel.ajoutChambre(new Chambre(1, "Chambre Simple", 80.0f, 1));
+            hotel.ajoutChambre(new Chambre(2, "Chambre Double", 120.0f, 2));
+            hotel.ajoutChambre(new Chambre(3, "Suite Deluxe", 200.0f, 3));
+            hotel.ajoutChambre(new Chambre(4, "Chambre Familiale", 150.0f, 4));
+            hotel.ajoutChambre(new Chambre(5, "Chambre Economy", 60.0f, 1));
+        } else if ("Lyon".equals(hotelVille)) {
+            hotel.ajoutChambre(new Chambre(11, "Chambre Standard", 70.0f, 1));
+            hotel.ajoutChambre(new Chambre(12, "Chambre Confort", 100.0f, 2));
+            hotel.ajoutChambre(new Chambre(13, "Suite Junior", 150.0f, 2));
+            hotel.ajoutChambre(new Chambre(14, "Chambre Triple", 130.0f, 3));
+            hotel.ajoutChambre(new Chambre(15, "Chambre Budget", 50.0f, 1));
+        } else if ("Montpellier".equals(hotelVille)) {
+            hotel.ajoutChambre(new Chambre(21, "Chambre Eco", 45.0f, 1));
+            hotel.ajoutChambre(new Chambre(22, "Chambre Double Confort", 85.0f, 2));
+            hotel.ajoutChambre(new Chambre(23, "Suite Vue Mer", 140.0f, 2));
+            hotel.ajoutChambre(new Chambre(24, "Chambre Quad", 110.0f, 4));
+            hotel.ajoutChambre(new Chambre(25, "Studio", 65.0f, 1));
+        }
+
+        System.out.println("  Chambres ajoutées: " + hotel.getListeDesChambres().size());
+        System.out.println("═══════════════════════════════════════════");
     }
 
     public Hotel getHotel() {

@@ -1,7 +1,7 @@
 package org.tp1.agence.client;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+// import org.springframework.stereotype.Component;
 import org.tp1.agence.dto.ChambreDTO;
 import org.tp1.agence.dto.RechercheRequest;
 import org.tp1.agence.dto.ReservationRequest;
@@ -11,10 +11,10 @@ import java.util.List;
 
 /**
  * Client SOAP pour communiquer avec les hôtels.
- * Cette version est temporaire et sera remplacée par un vrai client SOAP
- * une fois que les services SOAP des hôtels seront implémentés.
+ * [DÉSACTIVÉ] Cette version temporaire n'est plus utilisée.
+ * Utilise maintenant MultiHotelSoapClient pour interroger plusieurs hôtels.
  */
-@Component
+// @Component - DÉSACTIVÉ: Remplacé par MultiHotelSoapClient
 public class HotelSoapClient {
 
     @Value("${hotel.soap.url}")
