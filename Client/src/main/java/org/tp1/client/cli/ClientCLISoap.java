@@ -248,7 +248,11 @@ public class ClientCLISoap {
                 nom, prenom, numeroCarteBleue, chambreId, dateArrive, dateDepart
             );
 
-            if (response.isSuccess()) {
+            // Vérifier d'abord l'ID de réservation (plus fiable que le flag success)
+            if (response.getReservationId() == 0) {
+                // ID = 0 signifie que la réservation n'a pas été ajoutée à la liste
+                System.out.println(RED + BOLD + "\n✗ Mauvaise date" + RESET);
+            } else if (response.isSuccess()) {
                 System.out.println(GREEN + BOLD + "\n✓ RÉSERVATION CONFIRMÉE !" + RESET);
                 System.out.println("ID de réservation: " + CYAN + response.getReservationId() + RESET);
                 System.out.println("Message: " + response.getMessage());
