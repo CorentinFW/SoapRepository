@@ -155,5 +155,71 @@ public class MultiHotelSoapClient extends WebServiceGatewaySupport {
         System.err.println("✗ Échec de la réservation sur tous les hôtels");
         return 0;
     }
+
+    /**
+     * Récupère toutes les réservations de tous les hôtels
+     * @return Map avec nom de l'hôtel comme clé et liste de réservations comme valeur
+     */
+    public java.util.Map<String, List<Reservation>> getAllReservationsByHotel() {
+        java.util.Map<String, List<Reservation>> reservationsParHotel = new java.util.LinkedHashMap<>();
+
+        for (String hotelUrl : hotelUrls) {
+            try {
+                // Créer la requête SOAP
+                GetReservationsRequest soapRequest = new GetReservationsRequest();
+
+                // Définir l'URL cible
+                setDefaultUri(hotelUrl);
+
+                // Appel SOAP
+                GetReservationsResponse soapResponse =
+                    (GetReservationsResponse) getWebServiceTemplate()
+                        .marshalSendAndReceive(soapRequest);
+
+                if (soapResponse != null) {
+                    // Récupérer le nom de l'hôtel
+                    String hotelNom = getHotelName(hotelUrl);
+
+                    List<Reservation> reservations = soapResponse.getReservations();
+                    reservationsParHotel.put(hotelNom, reservations);
+
+                    System.out.println("✓ [" + hotelNom + "] " + reservations.size() + " réservation(s)");
+                }
+
+            } catch (Exception e) {
+                System.err.println("✗ [" + hotelUrl + "] Erreur: " + e.getMessage());
+                // Ajouter une liste vide en cas d'erreur
+                reservationsParHotel.put(getHotelName(hotelUrl), new ArrayList<>());
+            }
+        }
+
+        return reservationsParHotel;
+    }
+
+    /**
+     * Extrait le nom de l'hôtel à partir de l'URL ou récupère depuis l'hôtel
+     */
+    private String getHotelName(String hotelUrl) {
+        try {
+            // Essayer de récupérer les infos de l'hôtel
+            GetHotelInfoRequest request = new GetHotelInfoRequest();
+            setDefaultUri(hotelUrl);
+
+            GetHotelInfoResponse response = (GetHotelInfoResponse) getWebServiceTemplate()
+                .marshalSendAndReceive(request);
+
+            if (response != null && response.getHotel() != null) {
+                return response.getHotel().getNom();
+            }
+        } catch (Exception e) {
+            // Si erreur, déduire du port
+        }
+
+        // Fallback: déduire du port
+        if (hotelUrl.contains("8082")) return "Paris";
+        if (hotelUrl.contains("8083")) return "Lyon";
+        if (hotelUrl.contains("8084")) return "Montpellier";
+        return hotelUrl;
+    }
 }
 

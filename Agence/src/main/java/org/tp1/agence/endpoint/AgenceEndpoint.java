@@ -13,6 +13,7 @@ import org.tp1.agence.service.AgenceService;
 import org.tp1.agence.soap.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Endpoint SOAP qui expose les services de l'Agence
@@ -105,6 +106,42 @@ public class AgenceEndpoint {
         response.setReservationId(reservationResponse.getReservationId());
         response.setSuccess(reservationResponse.isSuccess());
         response.setMessage(reservationResponse.getMessage());
+
+        return response;
+    }
+
+    /**
+     * Récupérer toutes les réservations par hôtel
+     */
+    @PayloadRoot(namespace = NAMESPACE_URI, localPart = "getAllReservationsByHotelRequest")
+    @ResponsePayload
+    public GetAllReservationsByHotelResponse getAllReservationsByHotel(@RequestPayload GetAllReservationsByHotelRequest request) {
+        // Récupérer les réservations de tous les hôtels
+        Map<String, List<org.tp1.agence.wsdl.hotel.Reservation>> reservationsParHotel =
+            agenceService.getAllReservationsByHotel();
+
+        GetAllReservationsByHotelResponse response = new GetAllReservationsByHotelResponse();
+
+        // Convertir pour chaque hôtel
+        for (Map.Entry<String, List<org.tp1.agence.wsdl.hotel.Reservation>> entry : reservationsParHotel.entrySet()) {
+            HotelReservations hotelRes = new HotelReservations();
+            hotelRes.setHotelNom(entry.getKey());
+
+            for (org.tp1.agence.wsdl.hotel.Reservation hotelReservation : entry.getValue()) {
+                Reservation agenceReservation = new Reservation();
+                agenceReservation.setId(hotelReservation.getId());
+                agenceReservation.setClientNom(hotelReservation.getClient().getNom());
+                agenceReservation.setClientPrenom(hotelReservation.getClient().getPrenom());
+                agenceReservation.setChambreId(hotelReservation.getChambre().getId());
+                agenceReservation.setChambreNom(hotelReservation.getChambre().getNom());
+                agenceReservation.setDateArrive(hotelReservation.getDateArrive());
+                agenceReservation.setDateDepart(hotelReservation.getDateDepart());
+
+                hotelRes.getReservations().add(agenceReservation);
+            }
+
+            response.getHotels().add(hotelRes);
+        }
 
         return response;
     }

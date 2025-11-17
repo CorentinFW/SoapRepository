@@ -9,6 +9,7 @@ import org.tp1.agence.dto.ReservationRequest;
 import org.tp1.agence.dto.ReservationResponse;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Service de l'agence qui orchestre les appels SOAP aux hôtels
@@ -65,6 +66,13 @@ public class AgenceService {
                 false
             );
         }
+    }
+
+    /**
+     * Récupère toutes les réservations de tous les hôtels
+     */
+    public Map<String, List<org.tp1.agence.wsdl.hotel.Reservation>> getAllReservationsByHotel() {
+        return hotelSoapClient.getAllReservationsByHotel();
     }
 }
 
