@@ -5,7 +5,7 @@
 Ce fichier a été généré par l'implémentation de référence JavaTM Architecture for XML Binding (JAXB), v2.3.0 
 Voir <a href="https://javaee.github.io/jaxb-v2/">https://javaee.github.io/jaxb-v2/</a> 
 Toute modification apportée à ce fichier sera perdue lors de la recompilation du schéma source. 
-Généré le : 2025.11.17 à 09:28:43 AM CET 
+Généré le : 2025.11.17 à 10:14:44 AM CET 
 
   -->
   <bindings xmlns:tns="http://tp1.org/agence/soap" if-exists="true" scd="x-schema::tns">
@@ -35,6 +35,18 @@ Généré le : 2025.11.17 à 09:28:43 AM CET
     </bindings>
     <bindings if-exists="true" scd="tns:effectuerReservationResponse">
       <class ref="org.tp1.client.wsdl.agence.EffectuerReservationResponse"/>
+    </bindings>
+    <bindings if-exists="true" scd="tns:getAllReservationsByHotelRequest">
+      <class ref="org.tp1.client.wsdl.agence.GetAllReservationsByHotelRequest"/>
+    </bindings>
+    <bindings if-exists="true" scd="tns:getAllReservationsByHotelResponse">
+      <class ref="org.tp1.client.wsdl.agence.GetAllReservationsByHotelResponse"/>
+    </bindings>
+    <bindings if-exists="true" scd="~tns:hotelReservations">
+      <class ref="org.tp1.client.wsdl.agence.HotelReservations"/>
+    </bindings>
+    <bindings if-exists="true" scd="~tns:reservation">
+      <class ref="org.tp1.client.wsdl.agence.Reservation"/>
     </bindings>
   </bindings>
 </bindings>

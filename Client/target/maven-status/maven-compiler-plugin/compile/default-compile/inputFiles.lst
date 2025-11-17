@@ -1,7 +1,11 @@
 /home/corentinfay/Bureau/SoapRepository/Client/src/main/java/org/tp1/client/ClientApplication.java
+/home/corentinfay/Bureau/SoapRepository/Client/target/generated-sources/xjc/org/tp1/client/wsdl/agence/HotelReservations.java
 /home/corentinfay/Bureau/SoapRepository/Client/src/main/java/org/tp1/client/config/SoapClientConfig.java
 /home/corentinfay/Bureau/SoapRepository/Client/target/generated-sources/xjc/org/tp1/client/wsdl/agence/ObjectFactory.java
+/home/corentinfay/Bureau/SoapRepository/Client/target/generated-sources/xjc/org/tp1/client/wsdl/agence/GetAllReservationsByHotelResponse.java
 /home/corentinfay/Bureau/SoapRepository/Client/target/generated-sources/xjc/org/tp1/client/wsdl/agence/EffectuerReservationRequest.java
+/home/corentinfay/Bureau/SoapRepository/Client/target/generated-sources/xjc/org/tp1/client/wsdl/agence/Reservation.java
+/home/corentinfay/Bureau/SoapRepository/Client/target/generated-sources/xjc/org/tp1/client/wsdl/agence/GetAllReservationsByHotelRequest.java
 /home/corentinfay/Bureau/SoapRepository/Client/target/generated-sources/xjc/org/tp1/client/wsdl/agence/RechercherChambresResponse.java
 /home/corentinfay/Bureau/SoapRepository/Client/src/main/java/org/tp1/client/cli/ClientCLISoap.java
 /home/corentinfay/Bureau/SoapRepository/Client/target/generated-sources/xjc/org/tp1/client/wsdl/agence/Chambre.java

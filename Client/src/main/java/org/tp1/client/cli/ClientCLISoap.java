@@ -63,6 +63,9 @@ public class ClientCLISoap {
                     afficherDernieresChambres();
                     break;
                 case 4:
+                    afficherReservationsParHotel();
+                    break;
+                case 5:
                     System.out.println("\n" + CYAN + "Au revoir !" + RESET);
                     continuer = false;
                     break;
@@ -89,7 +92,8 @@ public class ClientCLISoap {
         System.out.println("1. " + BLUE + "Rechercher des chambres" + RESET);
         System.out.println("2. " + GREEN + "Effectuer une réservation" + RESET);
         System.out.println("3. " + YELLOW + "Afficher les dernières chambres trouvées" + RESET);
-        System.out.println("4. " + RED + "Quitter" + RESET);
+        System.out.println("4. " + CYAN + "Afficher toutes les réservations par hôtel" + RESET);
+        System.out.println("5. " + RED + "Quitter" + RESET);
         System.out.print("\n" + BOLD + "Votre choix: " + RESET);
     }
 
@@ -255,6 +259,52 @@ public class ClientCLISoap {
         } catch (Exception e) {
             System.out.println(RED + "Erreur: " + e.getMessage() + RESET);
             e.printStackTrace();
+        }
+    }
+
+    private void afficherReservationsParHotel() {
+        System.out.println("\n" + BOLD + CYAN + "═══ RÉSERVATIONS PAR HÔTEL ═══" + RESET);
+
+        System.out.println(YELLOW + "Récupération des réservations..." + RESET);
+
+        try {
+            GetAllReservationsByHotelResponse response = agenceSoapClient.getAllReservationsByHotel();
+
+            if (response.getHotels() == null || response.getHotels().isEmpty()) {
+                System.out.println(YELLOW + "\nAucune réservation trouvée dans le système." + RESET);
+                return;
+            }
+
+            int totalReservations = 0;
+
+            for (HotelReservations hotelRes : response.getHotels()) {
+                System.out.println("\n" + BOLD + "╔═══════════════════════════════════════════════════════════════════════╗" + RESET);
+                System.out.println(BOLD + "║  " + CYAN + "🏨 " + hotelRes.getHotelNom() + RESET);
+                System.out.println(BOLD + "╚═══════════════════════════════════════════════════════════════════════╝" + RESET);
+
+                if (hotelRes.getReservations().isEmpty()) {
+                    System.out.println("  " + YELLOW + "→ Aucune réservation" + RESET);
+                } else {
+                    totalReservations += hotelRes.getReservations().size();
+
+                    for (Reservation res : hotelRes.getReservations()) {
+                        System.out.println("\n  " + GREEN + "▬▬▬ Réservation #" + res.getId() + " ▬▬▬" + RESET);
+                        System.out.println("    👤 Client: " + BOLD + res.getClientPrenom() + " " + res.getClientNom() + RESET);
+                        System.out.println("    🛏️  Chambre: " + res.getChambreNom() + " " + CYAN + "(ID: " + res.getChambreId() + ")" + RESET);
+                        System.out.println("    📅 Arrivée: " + GREEN + res.getDateArrive() + RESET);
+                        System.out.println("    📅 Départ: " + RED + res.getDateDepart() + RESET);
+                    }
+                }
+                System.out.println();
+            }
+
+            System.out.println(BOLD + "─────────────────────────────────────────────────────────────────────────" + RESET);
+            System.out.println(GREEN + "✓ Total: " + totalReservations + " réservation(s) dans " + response.getHotels().size() + " hôtel(s)" + RESET);
+
+        } catch (Exception e) {
+            System.out.println(RED + "\n✗ Erreur lors de la récupération des réservations" + RESET);
+            System.out.println("  Message: " + e.getMessage());
+            System.out.println(YELLOW + "  Assurez-vous que l'agence et les hôtels sont démarrés" + RESET);
         }
     }
 }

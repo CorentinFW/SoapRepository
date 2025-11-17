@@ -71,5 +71,15 @@ public class AgenceSoapClient extends WebServiceGatewaySupport {
         return (EffectuerReservationResponse) getWebServiceTemplate()
                 .marshalSendAndReceive(request);
     }
+
+    /**
+     * Récupérer toutes les réservations par hôtel
+     */
+    public GetAllReservationsByHotelResponse getAllReservationsByHotel() {
+        GetAllReservationsByHotelRequest request = new GetAllReservationsByHotelRequest();
+
+        return (GetAllReservationsByHotelResponse) getWebServiceTemplate()
+                .marshalSendAndReceive(request);
+    }
 }
 
