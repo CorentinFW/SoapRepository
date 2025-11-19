@@ -23,6 +23,7 @@
             <xs:element name="nom" type="xs:string"/>
             <xs:element name="prix" type="xs:float"/>
             <xs:element name="nbrDeLit" type="xs:int"/>
+            <xs:element name="imageUrl" type="xs:string" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
 

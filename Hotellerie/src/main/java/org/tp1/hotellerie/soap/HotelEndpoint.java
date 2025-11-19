@@ -50,6 +50,7 @@ public class HotelEndpoint {
             soapChambre.setNom(chambre.getNom());
             soapChambre.setPrix(chambre.getPrix());
             soapChambre.setNbrDeLit(chambre.getNbrDeLit());
+            soapChambre.setImageUrl(chambre.getImageUrl());
             response.getChambres().add(soapChambre);
         }
 

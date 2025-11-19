@@ -170,6 +170,9 @@ public class ClientCLISoap {
             System.out.printf(CYAN + "[ID: %d]" + RESET + " %s\n", chambre.getId(), chambre.getNumero());
             System.out.printf("  Prix: " + GREEN + "%.2f€" + RESET + " | Lits: %d | Hôtel: %s\n",
                 chambre.getPrix(), chambre.getNbrLits(), chambre.getHotelNom());
+            if (chambre.getImageUrl() != null && !chambre.getImageUrl().isEmpty()) {
+                System.out.printf("  🖼️  Image: " + BLUE + "%s" + RESET + "\n", chambre.getImageUrl());
+            }
             System.out.printf("  Adresse: %s\n", chambre.getHotelAdresse());
             System.out.printf("  Disponible: %s\n", chambre.isDisponible() ? GREEN + "Oui" + RESET : RED + "Non" + RESET);
             System.out.println(BOLD + "─────────────────────────────────────────────────────────────────────────" + RESET);

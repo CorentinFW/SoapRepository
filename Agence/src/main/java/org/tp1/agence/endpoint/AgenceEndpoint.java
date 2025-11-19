@@ -77,6 +77,7 @@ public class AgenceEndpoint {
             chambreSoap.setHotelNom(chambreDTO.getHotelNom());
             chambreSoap.setHotelAdresse(chambreDTO.getHotelAdresse());
             chambreSoap.setDisponible(true); // Par défaut disponible dans la recherche
+            chambreSoap.setImageUrl(chambreDTO.getImageUrl());
             response.getChambres().add(chambreSoap);
         }
 

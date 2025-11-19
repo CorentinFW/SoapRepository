@@ -2,7 +2,7 @@
 // Ce fichier a été généré par l'implémentation de référence JavaTM Architecture for XML Binding (JAXB), v2.3.0 
 // Voir <a href="https://javaee.github.io/jaxb-v2/">https://javaee.github.io/jaxb-v2/</a> 
 // Toute modification apportée à ce fichier sera perdue lors de la recompilation du schéma source. 
-// Généré le : 2025.11.17 à 01:29:33 PM CET 
+// Généré le : 2025.11.19 à 08:37:05 AM CET 
 //
 
 
@@ -31,6 +31,7 @@ import javax.xml.bind.annotation.XmlType;
  *         &lt;element name="hotelNom" type="{http://www.w3.org/2001/XMLSchema}string"/&gt;
  *         &lt;element name="hotelAdresse" type="{http://www.w3.org/2001/XMLSchema}string"/&gt;
  *         &lt;element name="disponible" type="{http://www.w3.org/2001/XMLSchema}boolean"/&gt;
+ *         &lt;element name="imageUrl" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/&gt;
  *       &lt;/sequence&gt;
  *     &lt;/restriction&gt;
  *   &lt;/complexContent&gt;
@@ -47,7 +48,8 @@ import javax.xml.bind.annotation.XmlType;
     "nbrLits",
     "hotelNom",
     "hotelAdresse",
-    "disponible"
+    "disponible",
+    "imageUrl"
 })
 public class Chambre {
 
@@ -61,6 +63,7 @@ public class Chambre {
     @XmlElement(required = true)
     protected String hotelAdresse;
     protected boolean disponible;
+    protected String imageUrl;
 
     /**
      * Obtient la valeur de la propriété id.
@@ -196,6 +199,30 @@ public class Chambre {
      */
     public void setDisponible(boolean value) {
         this.disponible = value;
+    }
+
+    /**
+     * Obtient la valeur de la propriété imageUrl.
+     * 
+     * @return
+     *     possible object is
+     *     {@link String }
+     *     
+     */
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    /**
+     * Définit la valeur de la propriété imageUrl.
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link String }
+     *     
+     */
+    public void setImageUrl(String value) {
+        this.imageUrl = value;
     }
 
 }

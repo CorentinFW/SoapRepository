@@ -12,6 +12,7 @@
             <xs:element name="hotelNom" type="xs:string"/>
             <xs:element name="hotelAdresse" type="xs:string"/>
             <xs:element name="disponible" type="xs:boolean"/>
+            <xs:element minOccurs="0" name="imageUrl" type="xs:string"/>
         </xs:sequence>
     </xs:complexType>
 

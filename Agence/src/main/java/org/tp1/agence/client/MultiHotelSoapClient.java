@@ -87,7 +87,8 @@ public class MultiHotelSoapClient extends WebServiceGatewaySupport {
                             chambre.getPrix(),
                             chambre.getNbrDeLit(),
                             soapResponse.getHotelNom(),
-                            soapResponse.getHotelAdresse()
+                            soapResponse.getHotelAdresse(),
+                            chambre.getImageUrl()
                         );
                         toutesLesChambres.add(dto);
                     }

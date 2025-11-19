@@ -7,6 +7,7 @@ public class ChambreDTO {
     private int nbrDeLit;
     private String hotelNom;
     private String hotelAdresse;
+    private String imageUrl;
 
     public ChambreDTO() {
     }
@@ -18,6 +19,16 @@ public class ChambreDTO {
         this.nbrDeLit = nbrDeLit;
         this.hotelNom = hotelNom;
         this.hotelAdresse = hotelAdresse;
+    }
+
+    public ChambreDTO(int id, String nom, float prix, int nbrDeLit, String hotelNom, String hotelAdresse, String imageUrl) {
+        this.id = id;
+        this.nom = nom;
+        this.prix = prix;
+        this.nbrDeLit = nbrDeLit;
+        this.hotelNom = hotelNom;
+        this.hotelAdresse = hotelAdresse;
+        this.imageUrl = imageUrl;
     }
 
     public int getId() {
@@ -66,6 +77,14 @@ public class ChambreDTO {
 
     public void setHotelAdresse(String hotelAdresse) {
         this.hotelAdresse = hotelAdresse;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }
 

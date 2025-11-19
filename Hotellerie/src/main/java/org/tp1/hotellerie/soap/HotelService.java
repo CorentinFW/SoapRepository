@@ -33,6 +33,9 @@ public class HotelService {
     @Value("${hotel.ville:Paris}")
     private String hotelVille;
 
+    @Value("${server.port:8082}")
+    private int serverPort;
+
     @PostConstruct
     public void init() {
         // Convertir la catégorie String en Type enum
@@ -48,29 +51,47 @@ public class HotelService {
         System.out.println("  Catégorie: " + type);
         System.out.println("═══════════════════════════════════════════");
 
+        // Déterminer l'image selon la ville
+        String imageFileName = getImageFileName();
+        String imageUrl = "http://localhost:" + serverPort + "/images/" + imageFileName;
+
         // Ajouter des chambres différentes selon la ville
         if ("Paris".equals(hotelVille)) {
-            hotel.ajoutChambre(new Chambre(1, "Chambre Simple", 80.0f, 1));
-            hotel.ajoutChambre(new Chambre(2, "Chambre Double", 120.0f, 2));
-            hotel.ajoutChambre(new Chambre(3, "Suite Deluxe", 200.0f, 3));
-            hotel.ajoutChambre(new Chambre(4, "Chambre Familiale", 150.0f, 4));
-            hotel.ajoutChambre(new Chambre(5, "Chambre Economy", 60.0f, 1));
+            hotel.ajoutChambre(new Chambre(1, "Chambre Simple", 80.0f, 1, imageUrl));
+            hotel.ajoutChambre(new Chambre(2, "Chambre Double", 120.0f, 2, imageUrl));
+            hotel.ajoutChambre(new Chambre(3, "Suite Deluxe", 200.0f, 3, imageUrl));
+            hotel.ajoutChambre(new Chambre(4, "Chambre Familiale", 150.0f, 4, imageUrl));
+            hotel.ajoutChambre(new Chambre(5, "Chambre Economy", 60.0f, 1, imageUrl));
         } else if ("Lyon".equals(hotelVille)) {
-            hotel.ajoutChambre(new Chambre(11, "Chambre Standard", 70.0f, 1));
-            hotel.ajoutChambre(new Chambre(12, "Chambre Confort", 100.0f, 2));
-            hotel.ajoutChambre(new Chambre(13, "Suite Junior", 150.0f, 2));
-            hotel.ajoutChambre(new Chambre(14, "Chambre Triple", 130.0f, 3));
-            hotel.ajoutChambre(new Chambre(15, "Chambre Budget", 50.0f, 1));
+            hotel.ajoutChambre(new Chambre(11, "Chambre Standard", 70.0f, 1, imageUrl));
+            hotel.ajoutChambre(new Chambre(12, "Chambre Confort", 100.0f, 2, imageUrl));
+            hotel.ajoutChambre(new Chambre(13, "Suite Junior", 150.0f, 2, imageUrl));
+            hotel.ajoutChambre(new Chambre(14, "Chambre Triple", 130.0f, 3, imageUrl));
+            hotel.ajoutChambre(new Chambre(15, "Chambre Budget", 50.0f, 1, imageUrl));
         } else if ("Montpellier".equals(hotelVille)) {
-            hotel.ajoutChambre(new Chambre(21, "Chambre Eco", 45.0f, 1));
-            hotel.ajoutChambre(new Chambre(22, "Chambre Double Confort", 85.0f, 2));
-            hotel.ajoutChambre(new Chambre(23, "Suite Vue Mer", 140.0f, 2));
-            hotel.ajoutChambre(new Chambre(24, "Chambre Quad", 110.0f, 4));
-            hotel.ajoutChambre(new Chambre(25, "Studio", 65.0f, 1));
+            hotel.ajoutChambre(new Chambre(21, "Chambre Eco", 45.0f, 1, imageUrl));
+            hotel.ajoutChambre(new Chambre(22, "Chambre Double Confort", 85.0f, 2, imageUrl));
+            hotel.ajoutChambre(new Chambre(23, "Suite Vue Mer", 140.0f, 2, imageUrl));
+            hotel.ajoutChambre(new Chambre(24, "Chambre Quad", 110.0f, 4, imageUrl));
+            hotel.ajoutChambre(new Chambre(25, "Studio", 65.0f, 1, imageUrl));
         }
 
         System.out.println("  Chambres ajoutées: " + hotel.getListeDesChambres().size());
+        System.out.println("  URL image: " + imageUrl);
         System.out.println("═══════════════════════════════════════════");
+    }
+
+    private String getImageFileName() {
+        switch (hotelVille) {
+            case "Paris":
+                return "Hotelle1.png";
+            case "Lyon":
+                return "Hotelle2.png";
+            case "Montpellier":
+                return "Hotelle3.png";
+            default:
+                return "Hotelle1.png";
+        }
     }
 
     public Hotel getHotel() {
