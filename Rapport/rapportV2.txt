@@ -1,0 +1,1285 @@
+═══════════════════════════════════════════════════════════════════════════════
+                    RAPPORT DE PROJET - VERSION 2
+        SYSTÈME DE RÉSERVATION HÔTELIÈRE AVEC ARCHITECTURE SOAP
+═══════════════════════════════════════════════════════════════════════════════
+
+Auteur: Projet SoapRepository
+Date: 2025-01-19
+Version: 2.0 (Sans code source)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+1. LE PROJET
+═══════════════════════════════════════════════════════════════════════════════
+
+1.1 POURQUOI
+-------------
+
+Ce projet a été conçu pour mettre en place un système distribué de réservation
+d'hôtels utilisant les technologies de services web SOAP. L'objectif principal
+est de démontrer l'architecture orientée services (SOA) dans un contexte réel.
+
+Objectifs principaux :
+• Créer un système multi-hôtels permettant aux clients de rechercher et réserver
+  des chambres dans différents établissements
+• Utiliser SOAP comme protocole de communication entre les services
+• Implémenter une architecture à trois couches : Client, Agence, Hôtels
+• Démontrer l'interopérabilité entre services web distribués
+
+Cas d'usage :
+Un client se connecte à une agence de réservation, fournit ses critères de
+recherche (ville, dates, budget, nombre de lits, nombre d'étoiles), l'agence
+interroge alors plusieurs hôtels via SOAP, agrège les résultats et les présente
+au client qui peut ensuite effectuer une réservation.
+
+
+1.2 COMMENT
+-----------
+
+Le projet est construit sur une architecture en trois couches, chacune ayant
+un rôle distinct :
+
+Architecture globale :
+
+    ┌─────────────────┐
+    │  Client CLI     │  → Interface utilisateur (ligne de commande)
+    │  (Spring Boot)  │
+    └────────┬────────┘
+             │ SOAP/HTTP
+             ↓
+    ┌─────────────────┐
+    │     Agence      │  → Service intermédiaire (agrégateur)
+    │  (Port 8081)    │
+    └────────┬────────┘
+             │ SOAP/HTTP
+             ↓
+    ┌─────────────────────────────────────────────┐
+    │  Hôtels (Serveurs SOAP)                     │
+    │  - Paris (8082)                             │
+    │  - Lyon (8083)                              │
+    │  - Montpellier (8084)                       │
+    └─────────────────────────────────────────────┘
+
+Technologies utilisées :
+• Java 8+
+• Spring Boot 2.7.18
+• Maven pour la gestion des dépendances
+• Spring Web Services (Spring WS) pour implémenter les services SOAP
+
+Le projet est divisé en trois modules Maven indépendants :
+1. Hotellerie - Services SOAP des hôtels
+2. Agence - Service intermédiaire SOAP
+3. Client - Client CLI en ligne de commande
+
+2. L'HÔTEL
+═══════════════════════════════════════════════════════════════════════════════
+
+2.1 LOGIQUE MÉTIER
+------------------
+
+Chaque hôtel est une entité autonome qui gère ses propres ressources.
+
+Modèle de données :
+
+Hotel :
+  - nom : String (ex: "Grand Hotel Paris")
+  - adresse : String (ex: "10 Rue de la Paix, Paris")
+  - type : Type (enum: CAT1, CAT2, CAT3, CAT4, CAT5, CAT6)
+  - listeDesChambres : List<Chambre>
+  - listeReservation : List<Reservation>
+
+Chambre :
+  - id : int (identifiant unique)
+  - nom : String (ex: "Chambre Double")
+  - prix : float (en euros)
+  - nbrDeLit : int
+  - imageUrl : String (URL de l'image de la chambre)
+
+Reservation :
+  - id : int (auto-généré)
+  - client : Client
+  - chambre : Chambre
+  - dateArrive : Date
+  - dateDepart : Date
+
+Client :
+  - nom : String
+  - prenom : String
+  - numeroCarteBleue : String
+
+Fonctionnalités métier :
+
+1. Initialisation des chambres :
+   Chaque hôtel est configuré avec un profil Spring Boot spécifique
+   (paris, lyon, montpellier) qui définit :
+   - Le nom de l'hôtel
+   - Son adresse
+   - Sa catégorie (nombre d'étoiles)
+   - Le port d'écoute
+   - Les chambres disponibles (5 chambres par hôtel)
+
+   Exemple pour Paris :
+   - Chambre Simple : 80€, 1 lit
+   - Chambre Double : 120€, 2 lits
+   - Suite Deluxe : 200€, 3 lits
+   - Chambre Familiale : 150€, 4 lits
+   - Chambre Economy : 60€, 1 lit
+
+2. Recherche de chambres disponibles :
+   L'algorithme vérifie plusieurs critères :
+   a) Correspondance de l'adresse (recherche insensible à la casse)
+   b) Nombre d'étoiles (doit correspondre exactement si spécifié)
+   c) Prix (entre prixMin et prixMax si spécifiés)
+   d) Nombre de lits (minimum requis)
+   e) Disponibilité sur la période demandée
+
+   Vérification de disponibilité :
+   Une chambre est disponible si aucune réservation existante ne chevauche
+   la période demandée. Le système vérifie qu'il n'y a pas de conflit de dates
+   avec les réservations existantes.
+
+3. Gestion des réservations :
+   - Attribution automatique d'un ID unique (AtomicInteger)
+   - Validation des dates (dateArrive < dateDepart)
+   - Vérification de la disponibilité de la chambre
+   - Si les dates chevauchent une réservation existante, la réservation
+     est rejetée (ID = 0)
+   - Si la réservation réussit, elle est ajoutée à la liste et un ID > 0
+     est retourné
+
+
+2.2 LE SOAP
+-----------
+
+L'hôtel expose un service SOAP pur (sans REST) pour communiquer avec l'agence.
+
+Configuration SOAP :
+
+L'endpoint SOAP est configuré dans WebServiceConfig.java avec les paramètres :
+• Endpoint : /ws
+• Namespace : http://tp1.org/hotellerie/soap
+• WSDL : http://localhost:{port}/ws/hotel.wsdl
+• Schéma XSD : /xsd/hotel.xsd
+
+Fichier XSD (hotel.xsd) :
+Définit la structure des messages SOAP échangés.
+
+Types complexes :
+- hotel : Informations sur l'hôtel
+- chambre : Détails d'une chambre (id, nom, prix, nbrDeLit, imageUrl)
+- reservation : Informations de réservation
+- client : Données du client
+
+Opérations SOAP exposées :
+
+1. getHotelInfoRequest/Response
+   Retourne les informations générales de l'hôtel
+
+   Request : (vide)
+   Response :
+     - nom
+     - adresse
+     - type (nombre d'étoiles)
+     - nombreChambres
+     - nombreReservations
+
+2. rechercherChambresDisponiblesRequest/Response
+   Recherche des chambres selon des critères
+
+   Request :
+     - adresse (optionnel)
+     - dateArrive (requis)
+     - dateDepart (requis)
+     - prixMin (optionnel)
+     - prixMax (optionnel)
+     - nbrEtoile (optionnel)
+     - nbrLits (optionnel)
+
+   Response :
+     - chambres : List<chambre>
+     - hotelNom
+     - hotelAdresse
+
+3. effectuerReservationRequest/Response
+   Crée une réservation pour une chambre
+
+   Request :
+     - client (nom, prenom, numeroCarteBleue)
+     - chambreId
+     - dateArrive
+     - dateDepart
+
+   Response :
+     - reservationId (0 si échec, >0 si succès)
+     - message
+     - success (boolean)
+
+4. getReservationsRequest/Response
+   Récupère toutes les réservations de l'hôtel
+
+   Request : (vide)
+   Response :
+     - reservations : List<reservation>
+
+Point d'entrée SOAP :
+
+La classe HotelEndpoint.java utilise les annotations Spring :
+  - @Endpoint : Déclare la classe comme endpoint SOAP
+  - @PayloadRoot : Mappe les requêtes SOAP aux méthodes
+  - @RequestPayload : Unmarshall la requête XML vers objet Java
+  - @ResponsePayload : Marshall l'objet Java vers réponse XML
+
+Exemple de flux SOAP :
+
+Le client envoie une enveloppe SOAP avec un élément rechercherChambresDisponiblesRequest
+contenant les critères de recherche (dates, prix max, etc.).
+
+Le serveur répond avec une enveloppe SOAP contenant un élément
+rechercherChambresDisponiblesResponse avec la liste des chambres disponibles,
+incluant leurs détails (id, nom, prix, nombre de lits, URL d'image) ainsi que
+les informations de l'hôtel (nom, adresse).
+
+Le système utilise Spring WS qui automatise :
+• Le marshalling/unmarshalling XML ↔ Java (via JAXB)
+• La validation des messages selon le schéma XSD
+• La génération du WSDL
+• La gestion des erreurs SOAP
+
+
+
+3. L'AGENCE
+═══════════════════════════════════════════════════════════════════════════════
+
+3.1 LOGIQUE MÉTIER
+------------------
+
+L'agence joue un rôle d'orchestrateur et d'agrégateur entre les clients et
+les hôtels. Elle agit comme un double service :
+• Serveur SOAP pour les clients
+• Client SOAP pour les hôtels
+
+Architecture de l'agence :
+
+                    ┌──────────────┐
+                    │   Agence     │
+    Client SOAP ──→ │  Port 8081   │ ──→ Hôtels SOAP
+                    │              │     (8082-8084)
+                    │ ┌──────────┐ │
+                    │ │ Endpoint │ │     ┌─────────────┐
+                    │ │  (Recv)  │ │     │ MultiHotel  │
+                    │ └──────────┘ │     │ SoapClient  │
+                    │              │     │   (Send)    │
+                    │ ┌──────────┐ │     └─────────────┘
+                    │ │ Service  │ │
+                    │ │ (Logic)  │ │
+                    │ └──────────┘ │
+                    └──────────────┘
+
+Composants principaux :
+
+1. AgenceEndpoint (Serveur SOAP)
+   Reçoit les requêtes SOAP des clients et expose 4 opérations :
+   - ping : Test de disponibilité
+   - rechercherChambres : Recherche multi-hôtels
+   - effectuerReservation : Création de réservation
+   - getAllReservationsByHotel : Liste toutes les réservations
+
+2. AgenceService (Logique métier)
+   • Validation des paramètres d'entrée
+   • Orchestration des appels aux hôtels
+   • Agrégation des résultats
+   • Gestion des erreurs
+
+3. MultiHotelSoapClient (Client SOAP)
+   • Gère la connexion aux 3 hôtels configurés
+   • Envoie les requêtes SOAP en parallèle
+   • Agrège les résultats de tous les hôtels
+
+Configuration multi-hôtels :
+
+Les 3 hôtels sont configurés dans le fichier application.properties avec
+leur nom, URL et informations d'accès :
+
+- Paris : http://localhost:8082/ws - Grand Hotel Paris
+- Lyon : http://localhost:8083/ws - Hotel Lyon Centre
+- Montpellier : http://localhost:8084/ws - Hotel Mediterranee
+
+Logique de recherche multi-hôtels :
+
+Pour chaque requête de recherche :
+1. L'agence reçoit les critères du client
+2. Elle interroge TOUS les hôtels configurés en séquence
+3. Pour chaque hôtel :
+   a) Crée une requête SOAP vers l'endpoint de l'hôtel
+   b) Envoie les critères de recherche
+   c) Récupère les chambres disponibles
+   d) Ajoute le nom et l'adresse de l'hôtel à chaque chambre
+4. Agrège tous les résultats dans une liste unique
+5. Retourne la liste complète au client
+
+Logique de réservation :
+
+1. Le client envoie une demande avec :
+   - chambreId (identifiant unique)
+   - hotelUrl (pour savoir quel hôtel contacter)
+   - informations client
+   - dates
+
+2. L'agence :
+   a) Identifie l'hôtel concerné via l'URL ou le nom
+   b) Crée une requête SOAP de réservation
+   c) Envoie la requête à l'hôtel spécifique
+   d) Reçoit la confirmation (reservationId)
+   e) Retourne le résultat au client
+
+Gestion de la validation des dates :
+
+Lorsqu'une réservation échoue car les dates chevauchent une réservation
+existante, l'hôtel retourne un reservationId = 0. L'agence propage cette
+information au client qui peut alors afficher le message approprié
+("Mauvaise date" ou "Date déjà prise").
+
+DTOs (Data Transfer Objects) :
+
+L'agence utilise des DTOs pour la conversion entre les différentes couches :
+
+ChambreDTO :
+  - id, numero, nom
+  - prix, nbrLits
+  - hotelNom, hotelAdresse, hotelUrl
+  - disponible
+  - imageUrl
+
+RechercheRequest :
+  - adresse, dateArrive, dateDepart
+  - prixMin, prixMax
+  - nbrEtoile, nbrLits
+
+ReservationRequest :
+  - clientNom, clientPrenom, numeroCarteBleue
+  - chambreId, hotelUrl
+  - dateArrive, dateDepart
+
+ReservationResponse :
+  - reservationId
+  - message
+  - success
+
+
+3.2 LE SOAP
+-----------
+
+L'agence implémente SOAP des deux côtés :
+
+A) SERVEUR SOAP (pour les clients)
+
+Configuration :
+La configuration est définie dans SoapServiceConfig.java avec :
+• Endpoint : /ws
+• Namespace : http://tp1.org/agence
+• WSDL : http://localhost:8081/ws/agence.wsdl
+• Schéma XSD : /xsd/agence.xsd
+
+Schéma XSD (agence.xsd) :
+Définit les types et opérations côté agence.
+
+Types complexes :
+- chambre (avec hotelNom, hotelAdresse, hotelUrl en plus)
+- client
+- reservation
+
+Opérations exposées :
+
+1. pingRequest/Response
+   Test de connectivité
+   Response : String message
+
+2. rechercherChambresRequest/Response
+   Request : mêmes critères que l'hôtel
+   Response : List<chambre> (agrégées de tous les hôtels)
+
+3. effectuerReservationRequest/Response
+   Request : informations complètes avec hotelUrl
+   Response : reservationId, message, success
+
+4. getAllReservationsByHotelRequest/Response
+   Request : (vide)
+   Response : Map de hotels → List<reservation>
+
+Endpoint :
+
+La classe AgenceEndpoint.java utilise les annotations :
+• @Endpoint : Déclare le service SOAP
+• @PayloadRoot : Mappe les opérations
+• Injection de AgenceService pour la logique
+
+Le traitement d'une requête suit ce processus :
+1. Extraction des paramètres de la requête SOAP
+2. Appel au service métier pour la logique
+3. Conversion des DTOs vers les objets SOAP
+4. Retour de la réponse marshallée en XML
+
+B) CLIENT SOAP (pour les hôtels)
+
+Configuration :
+La classe MultiHotelSoapClient.java configure un client SOAP pour chaque hôtel.
+
+Un WebServiceTemplate est créé avec un marshaller/unmarshaller JAXB qui gère
+la conversion automatique entre XML et objets Java.
+
+Communication avec les hôtels :
+
+Méthode de recherche multi-hôtels :
+
+Pour chaque hôtel configuré, l'agence :
+- Crée une requête SOAP avec les critères de recherche
+- Envoie la requête via marshalSendAndReceive
+- Récupère la réponse et convertit les chambres en DTOs
+- Ajoute les informations de l'hôtel (nom, URL)
+- Continue avec les autres hôtels en cas d'erreur
+- Agrège tous les résultats dans une liste unique
+
+Méthode de réservation ciblée :
+
+L'agence identifie l'hôtel concerné via l'URL fournie, crée une requête SOAP
+spécifique, l'envoie à l'hôtel ciblé et retourne le reservationId reçu.
+
+Avantages de cette architecture SOAP :
+
+1. Séparation des préoccupations :
+   - Les hôtels gèrent leurs ressources
+   - L'agence orchestre et agrège
+   - Le client consomme un service unifié
+
+2. Extensibilité :
+   - Ajout facile de nouveaux hôtels (configuration)
+   - Pas de modification du code client
+
+3. Contrat strict :
+   - WSDL définit précisément les interfaces
+   - Validation automatique via XSD
+   - Typage fort en Java
+
+4. Indépendance technologique :
+   - Hôtels et agence peuvent être en différents langages
+   - SOAP est un standard universel
+
+
+
+4. CLIENT
+═══════════════════════════════════════════════════════════════════════════════
+
+4.1 LOGIQUE MÉTIER
+------------------
+
+Le client est une application CLI (Command Line Interface) en Spring Boot
+qui permet à un utilisateur d'interagir avec le système de réservation via
+une interface en ligne de commande.
+
+Architecture du client :
+
+┌─────────────────────────────────────────┐
+│         ClientApplication               │
+│  (Point d'entrée Spring Boot)           │
+└────────────────┬────────────────────────┘
+                 │
+                 ↓
+┌─────────────────────────────────────────┐
+│          ClientCLISoap                  │
+│    (Interface utilisateur CLI)          │
+│  - afficherMenu()                       │
+│  - rechercherChambres()                 │
+│  - effectuerReservation()               │
+│  - afficherReservationsParHotel()       │
+└────────────────┬────────────────────────┘
+                 │
+                 ↓
+┌─────────────────────────────────────────┐
+│       AgenceSoapClient                  │
+│  (Client SOAP vers l'agence)            │
+│  - ping()                               │
+│  - rechercherChambres()                 │
+│  - effectuerReservation()               │
+│  - getAllReservationsByHotel()          │
+└─────────────────────────────────────────┘
+                 │ SOAP/HTTP
+                 ↓
+         Agence (Port 8081)
+
+Fonctionnalités du client :
+
+1. Menu interactif en couleur :
+   Le client affiche un menu avec 5 options :
+   1. Rechercher des chambres
+   2. Effectuer une réservation
+   3. Afficher les dernières chambres trouvées
+   4. Afficher toutes les réservations par hôtel
+   5. Quitter
+
+2. Recherche de chambres :
+   L'utilisateur saisit ses critères :
+   - Adresse (ville/rue) - optionnel
+   - Date d'arrivée (format YYYY-MM-DD)
+   - Date de départ (format YYYY-MM-DD)
+   - Prix minimum - optionnel
+   - Prix maximum - optionnel
+   - Nombre d'étoiles (1-6) - optionnel
+   - Nombre de lits minimum - optionnel
+
+   Le client envoie une requête SOAP à l'agence qui interroge tous les hôtels
+   et retourne une liste agrégée de chambres.
+
+   Affichage des résultats :
+   Pour chaque chambre trouvée :
+   - ID et numéro de chambre
+   - Prix (en vert)
+   - Nombre de lits
+   - Nom et adresse de l'hôtel
+   - URL de l'image (en bleu)
+   - Disponibilité (Oui en vert, Non en rouge)
+
+3. Réservation :
+   Après une recherche, l'utilisateur peut réserver une chambre :
+   - Sélection de l'ID de chambre parmi les résultats
+   - Saisie des informations client (nom, prénom, carte bancaire)
+   - Saisie des dates (arrivée, départ)
+
+   Validation :
+   - Vérification que l'ID existe dans les résultats
+   - Envoi de la requête SOAP à l'agence
+   - Affichage du résultat :
+     • Si reservationId = 0 : "Mauvaise date" (rouge)
+     • Si reservationId > 0 : "RÉSERVATION CONFIRMÉE !" (vert)
+       avec l'ID de réservation
+     • Si échec : Message d'erreur
+
+4. Affichage des dernières chambres :
+   Permet de réafficher les résultats de la dernière recherche sans refaire
+   une requête SOAP.
+
+5. Affichage des réservations par hôtel :
+   Récupère toutes les réservations de tous les hôtels via l'agence.
+   Affichage organisé par hôtel avec présentation détaillée de chaque
+   réservation incluant le client, la chambre, les dates et le numéro
+   de carte bancaire.
+
+Interface utilisateur enrichie :
+
+Le client utilise des codes ANSI pour colorer et structurer l'affichage :
+• Couleurs : Rouge (erreurs), Vert (succès), Jaune (avertissements),
+  Bleu (informations), Cyan (titres)
+• Styles : Gras pour les titres, séparateurs graphiques
+• Emojis : 🏨 🛏️ 📅 📆 💳 👤 🖼️ pour une meilleure lisibilité
+
+Gestion des erreurs :
+
+Le client gère plusieurs types d'erreurs :
+• Connexion à l'agence impossible : message au démarrage
+• Saisies invalides : validation locale
+• Erreurs SOAP : affichage du message d'erreur
+• Pas de résultats : message approprié
+
+
+4.2 COMMENT ÇA FONCTIONNE
+--------------------------
+
+Flux complet d'une recherche et réservation :
+
+1. DÉMARRAGE DU CLIENT
+
+   Commande : cd Client && mvn spring-boot:run
+
+   → Spring Boot démarre l'application
+   → Injection des dépendances (AgenceSoapClient, etc.)
+   → Appel de la méthode run de ClientCLISoap
+   → Test de connexion avec ping()
+   → Affichage du menu
+
+2. RECHERCHE DE CHAMBRES
+
+   Utilisateur saisit :
+   - Adresse: Paris
+   - Date arrivée: 2025-12-01
+   - Date départ: 2025-12-05
+   - Prix max: 150
+   - Nombre de lits: 2
+
+   Flux SOAP :
+
+   a) Client crée un objet RechercherChambresRequest Java
+
+   b) AgenceSoapClient appelle rechercherChambres() :
+      - WebServiceTemplate marshall l'objet en XML
+      - Envoi HTTP POST vers http://localhost:8081/ws
+
+   c) Agence reçoit la requête SOAP :
+      - AgenceEndpoint unmarshall XML en objet Java
+      - AgenceService traite la logique métier
+      - MultiHotelSoapClient interroge les 3 hôtels
+
+   d) Pour chaque hôtel (Paris, Lyon, Montpellier) :
+      - Création d'une requête SOAP spécifique
+      - Envoi vers l'endpoint de l'hôtel
+      - HotelEndpoint reçoit et traite
+      - HotelService recherche dans ses chambres
+      - Retour de la réponse avec chambres disponibles
+
+   e) Agence agrège les résultats :
+      - Combine les chambres des 3 hôtels
+      - Ajoute nom/adresse/URL de chaque hôtel
+      - Marshall le tout en XML
+      - Retour au client
+
+   f) Client reçoit la réponse :
+      - Unmarshall XML en liste d'objets Chambre
+      - Stockage dans dernieresChambres
+      - Affichage formaté avec couleurs
+
+   Exemple de résultat affiché :
+
+   ✓ 3 chambre(s) trouvée(s):
+
+   ───────────────────────────────────────────────
+   [ID: 2] Chambre Double
+     Prix: 120.00€ | Lits: 2 | Hôtel: Grand Hotel Paris
+     🖼️  Image: http://localhost:8082/images/Hotelle1.png
+     Adresse: 10 Rue de la Paix, Paris
+     Disponible: Oui
+   ───────────────────────────────────────────────
+
+3. RÉSERVATION
+
+   Utilisateur saisit :
+   - ID chambre: 2
+   - Nom: Dupont
+   - Prénom: Jean
+   - Carte: 1234567890123456
+   - Arrivée: 2025-12-10
+   - Départ: 2025-12-15
+
+   Flux SOAP :
+
+   a) Client identifie la chambre dans dernieresChambres
+      → Récupère hotelUrl (ex: http://localhost:8082/ws)
+
+   b) Création de EffectuerReservationRequest avec toutes les informations
+      nécessaires (client, chambre, dates, hotel)
+
+   c) AgenceSoapClient appelle effectuerReservation() :
+      - Marshall objet en XML
+      - POST vers http://localhost:8081/ws
+
+   d) Agence reçoit et traite :
+      - Extraction de hotelUrl
+      - Identification de l'hôtel concerné (Paris)
+      - Création requête SOAP vers l'hôtel
+      - POST vers http://localhost:8082/ws
+
+   e) Hôtel Paris traite la réservation :
+      - La méthode effectuerReservation du service est appelée
+      - Vérification de disponibilité sur les dates
+      - Si OK :
+          * Création d'une Reservation avec ID auto-généré
+          * Ajout à la liste des réservations
+          * Retour reservationId (ex: 1)
+      - Si dates chevauchent une réservation existante :
+          * Pas d'ajout à la liste
+          * Retour reservationId = 0
+
+   f) Agence propage la réponse au client
+
+   g) Client affiche le résultat :
+      - Si reservationId = 0 :
+          ✗ Mauvaise date
+      - Si reservationId > 0 :
+          ✓ RÉSERVATION CONFIRMÉE !
+          ID de réservation: 1
+
+4. AFFICHAGE DES RÉSERVATIONS
+
+   Flux SOAP :
+
+   a) Client appelle getAllReservationsByHotel()
+
+   b) Agence interroge les 3 hôtels :
+      - Appel SOAP getReservations() sur chaque hôtel
+      - Agrégation dans une Map (hotelNom → Liste de Reservations)
+
+   c) Retour au client
+
+   d) Affichage organisé par hôtel avec toutes les informations
+
+Configuration SOAP côté client :
+
+Le fichier SoapClientConfig.java définit :
+- Un Jaxb2Marshaller configuré avec le package des classes générées
+- Un AgenceSoapClient configuré avec l'URL de l'agence et le marshaller
+
+Le client utilise WebServiceGatewaySupport de Spring WS qui fournit
+la méthode marshalSendAndReceive() pour gérer automatiquement le cycle
+complet : objet Java → XML → envoi HTTP → réception → XML → objet Java
+
+Classes générées depuis WSDL :
+
+Le projet utilise le plugin Maven jaxb2-maven-plugin pour générer
+automatiquement les classes Java depuis le WSDL de l'agence.
+
+Le plugin est configuré pour lire le fichier agence.wsdl et générer
+les classes dans le dossier target/generated-sources/xjc/
+
+Classes générées :
+- RechercherChambresRequest.java
+- RechercherChambresResponse.java
+- Chambre.java
+- EffectuerReservationRequest.java
+- EffectuerReservationResponse.java
+- etc.
+
+Ces classes sont utilisées directement par le client sans besoin de
+mappage manuel.
+
+Avantages de l'approche CLI :
+
+• Pas de complexité d'interface web
+• Focus sur la communication SOAP
+• Démonstration claire du flux de données
+• Facile à déboguer et tester
+• Idéal pour comprendre les échanges SOAP
+
+
+
+5. L'IMAGE
+═══════════════════════════════════════════════════════════════════════════════
+
+5.1 POURQUOI FAIRE ?
+--------------------
+
+L'ajout des images répond à plusieurs objectifs :
+
+1. Réalisme du système :
+   Un vrai système de réservation hôtelière permet aux clients de voir
+   des photos des chambres avant de réserver. C'est un élément essentiel
+   de l'expérience utilisateur.
+
+2. Démonstration de transfert de données supplémentaires :
+   Montre comment étendre le schéma SOAP pour inclure des informations
+   multimedia (ici via URL, mais pourrait être du Base64, etc.).
+
+3. Illustration de l'architecture multi-couches :
+   L'URL de l'image doit traverser toutes les couches :
+   Hôtel → Agence → Client
+   Chaque couche doit être modifiée pour propager l'information.
+
+4. Pratique de l'évolution de schéma :
+   Ajouter un champ à un service SOAP existant nécessite :
+   - Modification du XSD
+   - Modification du modèle de données
+   - Modification des endpoints
+   - Recompilation de tous les projets
+   - Régénération des classes SOAP
+
+Solution choisie : URL plutôt que données binaires
+
+Au lieu d'envoyer l'image en Base64 dans le XML SOAP (lourd et inefficace),
+on envoie simplement l'URL HTTP de l'image. Le client peut ensuite :
+- Afficher l'URL (comme actuellement)
+- Télécharger l'image si besoin
+- L'afficher dans une interface graphique future
+
+Avantages :
+• Messages SOAP légers
+• Séparation des préoccupations (données vs. ressources statiques)
+• Possibilité de caching côté client
+• Économie de bande passante
+
+
+5.2 COMMENT ÇA MARCHE ?
+------------------------
+
+Implémentation complète du système d'images :
+
+1. ORGANISATION DES FICHIERS
+
+Structure :
+SoapRepository/
+├── Image/                      # Dossier racine (backup)
+│   ├── Hotelle1.png           # Image Paris
+│   ├── Hotelle2.png           # Image Lyon
+│   └── Hotelle3.png           # Image Montpellier
+└── Hotellerie/
+    └── Image/                  # Images servies par les hôtels
+        ├── Hotelle1.png
+        ├── Hotelle2.png
+        └── Hotelle3.png
+
+Mapping Hôtel → Image :
+- Paris (8082) → Hotelle1.png
+- Lyon (8083) → Hotelle2.png
+- Montpellier (8084) → Hotelle3.png
+
+2. MODIFICATION DU MODÈLE HÔTEL
+
+a) Classe Chambre.java :
+   Un champ imageUrl de type String a été ajouté à la classe Chambre
+   avec son constructeur, getter et setter appropriés.
+
+b) XSD hotel.xsd :
+   Le type complexe "chambre" a été étendu pour inclure un élément
+   imageUrl de type string. L'attribut minOccurs="0" rend le champ
+   optionnel pour assurer la compatibilité.
+
+3. GÉNÉRATION DYNAMIQUE DES URL
+
+Le service HotelService génère dynamiquement les URLs d'images en fonction
+de la configuration :
+
+- Récupération du port du serveur depuis la configuration
+- Récupération du nom de la ville depuis la configuration
+- Détermination du nom de fichier image selon la ville (switch)
+- Construction de l'URL complète : http://localhost:{port}/images/{fichier}
+
+Résultat :
+- Paris : http://localhost:8082/images/Hotelle1.png
+- Lyon : http://localhost:8083/images/Hotelle2.png
+- Montpellier : http://localhost:8084/images/Hotelle3.png
+
+4. CONFIGURATION DU SERVEUR DE FICHIERS STATIQUES
+
+La classe StaticResourceConfig configure Spring Boot pour servir les fichiers
+statiques :
+
+Le gestionnaire de ressources est configuré pour mapper l'URL /images/**
+vers deux emplacements :
+- Le dossier "Image/" relatif au répertoire d'exécution
+- Le dossier "static/images/" dans les ressources classpath
+
+Fonctionnement :
+• Requête HTTP GET vers /images/Hotelle1.png
+• Spring Boot cherche le fichier dans les emplacements configurés
+• Retourne le fichier avec Content-Type: image/png
+
+5. PROPAGATION DANS LES ENDPOINTS SOAP
+
+L'endpoint HotelEndpoint a été modifié pour inclure l'imageUrl lors de la
+conversion des objets Chambre métier vers les objets Chambre SOAP.
+
+Pour chaque chambre trouvée, le système :
+- Extrait tous les champs standards (id, nom, prix, nombre de lits)
+- Ajoute l'imageUrl depuis l'objet métier
+- Construit l'objet SOAP complet
+- L'ajoute à la réponse
+
+6. MODIFICATIONS DE L'AGENCE
+
+a) XSD agence.xsd :
+   Le type complexe "chambre" a été étendu pour inclure imageUrl
+   (minOccurs="0" pour l'optionnalité)
+
+b) ChambreDTO.java :
+   Le DTO a été enrichi avec un champ imageUrl, son constructeur mis à jour
+   et les accesseurs ajoutés.
+
+c) MultiHotelSoapClient.java :
+   Lors de la conversion des réponses SOAP en DTOs, l'imageUrl est extraite
+   de chaque objet Chambre SOAP et incluse dans le ChambreDTO créé.
+
+d) AgenceEndpoint.java :
+   Lors de la conversion des DTOs en objets SOAP pour la réponse, l'imageUrl
+   est propagée depuis le DTO vers l'objet Chambre SOAP.
+
+7. AFFICHAGE CÔTÉ CLIENT
+
+La classe ClientCLISoap a été modifiée pour afficher l'URL de l'image dans
+les résultats de recherche.
+
+Pour chaque chambre affichée :
+- ID et nom de la chambre
+- Prix et nombre de lits
+- Vérification de la présence d'une imageUrl
+- Si présente : affichage avec l'emoji 🖼️ et l'URL en couleur
+- Nom et adresse de l'hôtel
+- Disponibilité
+
+Résultat affiché :
+
+[ID: 2] Chambre Double
+  Prix: 120.00€ | Lits: 2 | Hôtel: Grand Hotel Paris
+  🖼️  Image: http://localhost:8082/images/Hotelle1.png
+  Adresse: 10 Rue de la Paix, Paris
+  Disponible: Oui
+
+8. FLUX COMPLET
+
+Client recherche → Agence → Hôtel Paris :
+
+1. Hôtel crée chambre avec imageUrl = "http://localhost:8082/images/Hotelle1.png"
+2. Hôtel retourne chambre dans réponse SOAP
+3. Agence récupère chambre avec imageUrl
+4. Agence propage imageUrl dans sa réponse SOAP
+5. Client reçoit chambre avec imageUrl
+6. Client affiche l'URL
+
+Si le client veut voir l'image :
+- Copier l'URL
+- Ouvrir dans un navigateur
+- OU télécharger via curl ou wget
+
+9. VÉRIFICATION
+
+Test manuel :
+
+Démarrer un hôtel avec son profil spécifique, puis tester l'accès direct
+à l'image via curl avec l'option -I pour voir les headers HTTP.
+
+Réponse attendue :
+HTTP/1.1 200
+Content-Type: image/png
+Content-Length: (taille en octets)
+
+Test SOAP complet :
+
+1. Démarrer le système : ./start-system-soap.sh
+2. Lancer le client : cd Client && mvn spring-boot:run
+3. Rechercher chambres à Paris
+4. Vérifier que les URLs d'images s'affichent
+5. Tester l'URL dans un navigateur
+
+Compilation après modifications :
+
+L'ordre de compilation est crucial car l'agence dépend des types SOAP de
+l'hôtel, et le client dépend des types SOAP de l'agence.
+
+Ordre recommandé :
+1. Hotellerie : mvn clean compile -DskipTests
+2. Agence : mvn clean compile -DskipTests
+3. Client : mvn clean compile -DskipTests
+
+
+
+6. ÉVOLUTION FUTURE
+═══════════════════════════════════════════════════════════════════════════════
+
+Le système actuel fonctionne mais pourrait être amélioré de plusieurs façons :
+
+6.1 AMÉLIORATIONS FONCTIONNELLES
+
+1. Interface Web (React/Angular)
+   • Remplacer le CLI par une vraie interface web
+   • Affichage visuel des images de chambres
+   • Calendrier interactif pour les dates
+   • Filtrage et tri en temps réel
+
+2. Authentification et Comptes Utilisateurs
+   • Login/Register
+   • Historique des réservations par utilisateur
+   • Profils utilisateurs
+   • WS-Security pour sécuriser SOAP
+
+3. Gestion des Annulations
+   • Nouvelle opération SOAP : annulerReservation
+   • Politique d'annulation (délai, remboursement)
+   • Notification par email
+
+4. Système de Paiement
+   • Intégration Stripe/PayPal
+   • Validation réelle des cartes bancaires
+   • Confirmation de paiement
+
+5. Recherche Avancée
+   • Recherche par géolocalisation (distance d'un point)
+   • Filtres : wifi, parking, petit-déjeuner, climatisation
+   • Tri par prix, note, distance
+
+6. Système de Notation et Avis
+   • Les clients peuvent noter les hôtels
+   • Commentaires et photos
+   • Moyenne des notes visible dans les résultats
+
+6.2 AMÉLIORATIONS TECHNIQUES
+
+1. Base de Données Persistante
+   • Actuellement : données en mémoire (perdues au redémarrage)
+   • Migration vers PostgreSQL/MySQL
+   • JPA/Hibernate pour l'ORM
+   • Persistance réelle des réservations
+
+2. Architecture Microservices
+   • Conteneurisation Docker
+   • Orchestration Kubernetes
+   • Service discovery (Eureka)
+   • API Gateway
+
+3. Gestion d'Erreurs Robuste
+   • Retry automatique en cas d'échec
+   • Circuit breaker (Hystrix/Resilience4j)
+   • Fallback : si un hôtel ne répond pas, continuer avec les autres
+   • Logging centralisé (ELK Stack)
+
+4. Performance
+   • Appels SOAP en parallèle (CompletableFuture)
+   • Cache Redis pour les résultats de recherche
+   • CDN pour les images
+   • Compression GZIP des messages SOAP
+
+5. Monitoring et Observabilité
+   • Prometheus pour les métriques
+   • Grafana pour les dashboards
+   • Tracing distribué (Zipkin/Jaeger)
+   • Alertes en cas de problème
+
+6. Tests Automatisés
+   • Tests unitaires (JUnit, Mockito)
+   • Tests d'intégration SOAP (SoapUI)
+   • Tests de charge (JMeter)
+   • Tests end-to-end (Selenium)
+
+7. CI/CD
+   • Pipeline GitLab/GitHub Actions
+   • Build automatique
+   • Tests automatiques
+   • Déploiement automatique
+
+6.3 ÉVOLUTIONS PROTOCOLAIRES
+
+1. Migration REST en Option
+   • Offrir REST en alternative à SOAP
+   • API RESTful JSON pour les clients web/mobile
+   • Swagger/OpenAPI pour la documentation
+   • GraphQL pour les requêtes complexes
+
+2. Webhooks
+   • Notifications asynchrones
+   • Alerte quand une chambre se libère
+   • Confirmation de réservation par webhook
+
+3. WebSockets
+   • Mise à jour en temps réel de la disponibilité
+   • Chat support client
+   • Notifications push
+
+6.4 SÉCURITÉ
+
+1. HTTPS/TLS
+   • Chiffrement des communications
+   • Certificats SSL
+   • HTTP/2
+
+2. WS-Security
+   • Signature digitale des messages SOAP
+   • Chiffrement des données sensibles
+   • Timestamps pour prévenir les replay attacks
+
+3. OAuth2/JWT
+   • Authentification moderne
+   • Token-based authentication
+   • Refresh tokens
+
+4. Validation et Sanitization
+   • Protection contre injection SQL
+   • Validation stricte des entrées
+   • Escape des données
+
+6.5 BUSINESS
+
+1. Multi-langue
+   • Internationalisation (i18n)
+   • Support français, anglais, espagnol, etc.
+   • Traduction des descriptions d'hôtels
+
+2. Multi-devise
+   • Conversion automatique (€, $, £)
+   • API de taux de change en temps réel
+
+3. Promotions et Réductions
+   • Codes promo
+   • Réductions pour séjours longs
+   • Programme de fidélité
+
+4. Recommandations
+   • Machine Learning pour suggérer des hôtels
+   • Basé sur l'historique de l'utilisateur
+   • Hôtels similaires
+
+5. Analyse et Statistiques
+   • Dashboard administrateur
+   • Taux d'occupation
+   • Revenus
+   • Tendances de réservation
+
+
+
+7. CONCLUSION
+═══════════════════════════════════════════════════════════════════════════════
+
+7.1 SYNTHÈSE DU PROJET
+----------------------
+
+Ce projet a permis de mettre en œuvre avec succès un système de réservation
+hôtelière basé sur une architecture SOAP distribuée. L'ensemble du système
+est fonctionnel et démontre les principes fondamentaux des services web.
+
+Points clés réalisés :
+
+✓ Architecture à trois couches entièrement fonctionnelle
+✓ Communication SOAP pure entre tous les composants
+✓ Support de 3 hôtels simultanés (Paris, Lyon, Montpellier)
+✓ Client CLI interactif et convivial
+✓ Gestion complète des réservations avec validation des dates
+✓ Système d'images associées aux chambres
+✓ Scripts d'automatisation pour le démarrage
+✓ Documentation complète
+
+7.2 OBJECTIFS ATTEINTS
+-----------------------
+
+1. Technique :
+   • Maîtrise de SOAP avec Spring Web Services
+   • Compréhension du marshalling/unmarshalling XML
+   • Utilisation de JAXB et des schémas XSD
+   • Configuration de services web multi-instances
+   • Gestion des ressources statiques (images)
+
+2. Architecture :
+   • Conception d'une architecture distribuée cohérente
+   • Séparation claire des responsabilités
+   • Pattern client-serveur sur plusieurs niveaux
+   • Agrégation de services (pattern Aggregator dans l'agence)
+
+3. Fonctionnel :
+   • Recherche multi-critères fonctionnelle
+   • Système de réservation avec validation
+   • Détection des conflits de dates
+   • Consultation des réservations par hôtel
+   • Affichage d'informations enrichies (images)
+
+7.3 DÉFIS RENCONTRÉS ET SOLUTIONS
+----------------------------------
+
+1. Synchronisation des schémas XSD
+   Problème : Modifications dans un XSD nécessitent recompilation de tous
+   Solution : Scripts de compilation automatique, ordre de build respecté
+
+2. Validation des dates de réservation
+   Problème : Détection client-side des réservations refusées
+   Solution : Utilisation de reservationId = 0 comme indicateur d'échec
+
+3. Gestion multi-hôtels
+   Problème : Configuration dynamique de plusieurs instances
+   Solution : Profils Spring Boot (paris, lyon, montpellier)
+
+4. Propagation des informations d'images
+   Problème : Nouveau champ à traverser toutes les couches
+   Solution : Modification systématique XSD → DTO → Endpoints
+
+7.4 ACQUIS PÉDAGOGIQUES
+------------------------
+
+Ce projet a permis de comprendre :
+
+• Le fonctionnement détaillé de SOAP (enveloppe, body, WSDL)
+• La différence entre SOAP et REST
+• L'importance des contrats d'interface (WSDL, XSD)
+• La gestion de services distribués
+• Les avantages du typage fort (Java + XML Schema)
+• Les enjeux de l'interopérabilité entre services
+
+Compétences développées :
+
+• Configuration Spring Boot avancée
+• Débogage de messages SOAP
+• Gestion de projets Maven multi-modules
+• Scripts Shell pour l'automatisation
+• Design patterns (Aggregator, Gateway, DTO)
+• Documentation technique
+
+7.5 PERSPECTIVES
+----------------
+
+Le système constitue une base solide pour des évolutions futures :
+
+À court terme :
+• Ajout de tests automatisés
+• Conteneurisation Docker
+• Base de données persistante
+
+À moyen terme :
+• Interface web moderne
+• API REST complémentaire
+• Système de notifications
+
+À long terme :
+• Architecture microservices complète
+• Machine Learning pour recommandations
+• Application mobile
+
+7.6 RETOUR D'EXPÉRIENCE
+------------------------
+
+Forces du projet :
+
++ Architecture claire et modulaire
++ Code bien structuré et commenté
++ Documentation exhaustive
++ Système fonctionnel de bout en bout
++ Démonstration concrète de SOAP
+
+Points d'amélioration possibles :
+
+- Persistence des données (actuellement en mémoire)
+- Tests unitaires et d'intégration limités
+- Gestion d'erreurs à renforcer
+- Performance non optimisée (appels séquentiels)
+- Sécurité basique (pas d'authentification)
+
+7.7 MOT DE LA FIN
+------------------
+
+Ce projet démontre qu'il est possible de construire un système distribué
+cohérent et fonctionnel avec SOAP, malgré la tendance actuelle vers REST.
+
+SOAP reste pertinent dans certains contextes :
+• Environnements d'entreprise legacy
+• Systèmes nécessitant un contrat strict
+• Interopérabilité avec des technologies .NET, Java EE
+• Besoins de sécurité avancée (WS-Security)
+
+L'expérience acquise sur ce projet est transférable à d'autres technologies
+(REST, gRPC, GraphQL) car les concepts fondamentaux restent identiques :
+• Séparation des préoccupations
+• Contrats d'interface
+• Communication client-serveur
+• Sérialisation/désérialisation
+• Gestion d'erreurs distribuées
+
+Le système est prêt pour une démonstration et peut servir de base pour
+des projets futurs ou des extensions pédagogiques.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                              FIN DU RAPPORT
+═══════════════════════════════════════════════════════════════════════════════
+
+Contacts et Ressources :
+
+Repository : /home/corentinfay/Bureau/SoapRepository
+
+Scripts de démarrage :
+• ./start-system-soap.sh : Lance tout le système
+• ./start-robuste.sh : Version avec retry
+• ./premier-test.sh : Test rapide
+
+Documentation :
+• PROJET_COMPLET.md : Vue d'ensemble
+• Hotellerie/SOAP_README.md : Documentation hôtel
+• Agence/README.md : Documentation agence
+• Client/README.md : Documentation client
+• IMPLEMENTATION_IMAGES.md : Système d'images
+
+Tests :
+• test-3-hotels.sh : Test des 3 hôtels
+• test-connexion-soap.sh : Test de connexion
+• test-images.sh : Test des images
+
+═══════════════════════════════════════════════════════════════════════════════
+
