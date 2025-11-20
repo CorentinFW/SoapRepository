@@ -1,17 +1,38 @@
 1 Le projet
-1.1 Pourquoi
-1.2 Comment
+    1.1 Mis en contexte
+        mise en place d'un systeme de reservation d'hotel en passant par une agence de voyage
+    1.2 les techno et les idée
+        techno : SOAP, Java, springboot, maven
+        idee : separation des taches entre l'hotel, l'agence et le client
 2 L'hotel
-2.1 Logique metier
-2.2 le soap
+    2.1 Logique metier
+        explication bref et concis de la logique metier de l'hotel
+        puis mis en place du diagramme de classe
+    2.2 Implementation du soap
+        explication de l'implementation du soap pour l'hotel
 3 l'agence
-3.1 Logique metier
-3.2 le soap
+    3.1 Logique metier
+        explication bref et concis de la logique metier de l'agence
+    3.2 Implementation du soap
+        explication de l'implementation du soap pour l'agence
 4 CLient
-4.1 Logique metier
-4.2 comment ça fonctionne
+    4.1 Logique metier
+        explication bref et concis de la logique metier du client
+        passage par cli
+    4.2 comment ça fonctionne
+        springboot pur qui echange avec l'agence
 5 l'image
-5.1 pourquoi faire ?
-5.2 comment ça marche ?
-6 evolution future
-7 Conclusion
+    5.1 utilité
+        besoin d'une image pour donner envie au client
+    5.2 mise en place
+        comment on a mis en place l'image (via localhost)
+
+6 Quickstart
+    il y a deux fichier .sh pour lancer avec 1 hotel ou 3 hotel pour tester
+7 evolution future
+   interface pour l'utilisateur
+   bdd
+   amelioration de la logique metier hotel ( ameliorer les reservations)
+8 Conclusion
+    en quoi soap est bien
+    tres bonne base pour un future service deployable
