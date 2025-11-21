@@ -25,53 +25,117 @@ L’hôtel représente un établissement qui propose des chambres à la réserva
 La logique métier principale tourne autour de quelques notions simples :
 les chambres, les dates de séjour, le nombre de personnes et l’état des réservations.
 
-Lorsqu’une demande arrive (dates, ville, nombre de personnes),
-l’hôtel vérifie quelles chambres sont libres pour cette période. Si une chambre est disponible, il peut la proposer.
-Lorsqu’une réservation est confirmée, l’hôtel bloque la chambre pour les dates demandées afin d’éviter les doublons.
+Lorsqu’une demande arrive (adresse, dates de séjour, nombre de personnes, budget éventuel),
+le système de l’hôtel suit toujours la même séquence :
+- il filtre d’abord les chambres de l’hôtel en fonction de critères « statiques » :
+  capacité (nombre de lits suffisant pour accueillir le nombre de clients),
+  éventuellement une fourchette de prix, et le type d’hôtel (catégorie/étoiles) ;
+- pour chaque chambre encore candidate, il vérifie ensuite la dimension « temporelle » :
+  on parcourt toutes les réservations déjà enregistrées pour cette chambre
+  et on teste si les intervalles de dates se chevauchent. Deux séjours sont considérés
+  comme incompatibles si la période demandée recoupe au moins un jour d’une réservation existante ;
+- si aucune réservation existante ne chevauche l’intervalle demandé pour cette chambre,
+  la chambre est considérée comme disponible sur la période.
+
+En pratique, la recherche consiste donc à parcourir la liste des hôtels, puis la liste
+des chambres de chaque hôtel, en appliquant successivement ces filtres métier :
+ville/adresse, catégorie (nombre d’étoiles), prix minimum/maximum, nombre de lits,
+puis vérification de la disponibilité par comparaison des dates d’arrivée et de départ
+avec toutes les réservations déjà connues. La première chambre qui respecte tous
+ces critères peut être proposée en résultat, ou bien l’ensemble des chambres
+conformes peut être remonté, selon le besoin de l’appelant.
+
+Pour la réservation, la logique métier repose sur cette même notion de disponibilité,
+mais avec une étape supplémentaire de création de réservation :
+- à partir de la requête du client (identité, numéro de carte, chambre choisie,
+dates d’arrivée et de départ), l’hôtel recontrôle que la chambre visée est encore
+libre pour la période demandée (afin d’éviter qu’une autre réservation ne soit
+passée entre-temps) ;
+- si la chambre est toujours disponible, l’hôtel crée un objet réservation
+associant le client, la chambre et les dates de séjour, lui attribue un identifiant,
+puis l’ajoute à la liste des réservations de l’hôtel ;
+- si la chambre n’est plus disponible (par exemple parce qu’une réservation
+conflit existe déjà sur le même créneau), la réservation n’est pas ajoutée
+et un code de retour ou un identifiant nul permet d’indiquer au client que
+la demande n’a pas pu être honorée.
+
+Cette logique assure que deux réservations qui se chevauchent pour la même chambre
+ne peuvent pas coexister en même temps dans le système, et garantit la cohérence
+entre les recherches proposées au client et les réservations réellement enregistrées.
 
 La structure interne peut se représenter par un diagramme de classes classique :
 une classe pour l’hôtel, une pour les chambres, une pour les réservations et éventuellement des classes pour les périodes ou les clients. L’objectif est de garder une organisation claire et facile à faire évoluer.
 
 2.2 Implémentation du SOAP
 L’hôtel expose un service SOAP qui permet à l’agence de le contacter.
-Ce service propose des opérations pour rechercher des chambres disponibles et pour créer une réservation.
+Ce service propose des opérations pour rechercher des chambres disponibles, créer une réservation et, dans notre cas, fournir des informations sur l’hôtel (par exemple son nom, son adresse ou la liste de ses réservations).
 
-Sur le plan technique, l’hôtel définit d’abord un contrat de service à l’aide d’un WSDL (Web Services Description Language) et de schémas XSD. Ces fichiers décrivent de manière formelle la structure des messages (types, champs, formats) et les opérations disponibles (par exemple : rechercherChambres, reserverChambre). Les classes Java utilisées par le service sont générées automatiquement à partir de ces schémas (génération JAXB), ce qui garantit que les objets manipulés côté code correspondent exactement aux messages SOAP échangés.
+Sur le plan technique, l’hôtel commence par définir un **contrat de service** à l’aide d’un WSDL (Web Services Description Language) et de schémas XSD associés. Le WSDL décrit les opérations exposées (par exemple : `rechercherChambres`, `effectuerReservation`, `getReservations`, `getHotelInfo`), la forme des messages d’entrée et de sortie, ainsi que le protocole utilisé (SOAP sur HTTP) et l’URL du service. Les schémas XSD détaillent la structure des données échangées : types complexes pour les chambres, les clients, les réservations, format des dates, des montants, etc.
 
-Le serveur Spring Boot intègre le module Spring-WS, qui publie ce service sur une URL spécifique (un endpoint SOAP). À chaque appel, le message SOAP est reçu, désérialisé en objets Java (unmarshal), puis transmis à une classe de service qui contient la logique métier : vérification des disponibilités, création d’une réservation, mise à jour des listes internes, etc. Une fois le traitement terminé, la réponse est construite sous forme d’objets Java, retransformée en XML SOAP (marshal) et renvoyée au consommateur. L’ensemble suit le contrat défini par le WSDL, ce qui assure l’interopérabilité et la robustesse des échanges.
+À partir de ces schémas XSD, un plugin Maven génère automatiquement des **classes Java JAXB**. Ces classes représentent les types de données du contrat SOAP (requêtes et réponses). Lorsqu’un message SOAP arrive, il est directement transformé en instances de ces classes, ce qui garantit que les objets utilisés côté code correspondent exactement au format des messages attendu par les consommateurs.
+
+Le serveur Spring Boot de l’hôtel intègre le module **Spring-WS**, qui joue le rôle de moteur SOAP. Une configuration dédiée enregistre un `MessageDispatcherServlet` sur une URL donnée (par exemple `/ws/*`) et associe le WSDL ainsi que le schéma XSD à ce servlet. Un marshaller JAXB est également configuré pour savoir comment convertir automatiquement les messages XML en objets Java (unmarshal) et inversement (marshal).
+
+Lorsqu’une requête SOAP est reçue depuis l’agence, le traitement suit toujours la même chaîne :
+- le message SOAP XML est reçu sur l’URL de l’endpoint ;
+- Spring-WS utilise JAXB pour désérialiser le corps du message en un objet Java généré (par exemple `RechercherChambresRequest` ou `EffectuerReservationRequest`) ;
+- cet objet est transmis à une classe endpoint (par exemple `HotelEndpoint`) où une méthode annotée correspond à l’opération appelée dans le WSDL ;
+- la méthode lit les paramètres de la requête (adresse, dates, nombre de personnes, budget, identifiant de chambre, informations client, etc.) et les transmet à la couche métier (gestionnaire, hôtels, chambres, réservations) ;
+- la logique métier applique alors les règles vues précédemment : filtrage des chambres, contrôle des chevauchements de dates, création éventuelle d’une réservation et mise à jour des listes internes ;
+- une réponse est construite sous la forme d’un objet Java généré (par exemple `RechercherChambresResponse` ou `EffectuerReservationResponse`), contenant les informations nécessaires : liste des chambres disponibles, identifiant de réservation, message de confirmation ou d’erreur ;
+- enfin, Spring-WS sérialise cette réponse en XML SOAP et la renvoie à l’agence, en respectant strictement la structure définie par le WSDL.
+
+Cette séparation entre la **couche SOAP** (contrat WSDL/XSD, endpoint, marshaller) et la **couche métier** (gestion des chambres, réservations, clients) permet de faire évoluer la logique interne de l’hôtel sans modifier l’interface publique, tant que le contrat SOAP reste le même. Elle garantit aussi des échanges robustes et interopérables avec n’importe quel consommateur respectant le WSDL.
 
 3. L’agence
 
 3.1 Logique métier
-L’agence joue le rôle d’intermédiaire entre le client et les hôtels. Sa logique métier consiste à :
-- recevoir une demande de recherche ou de réservation du client,
-- interroger plusieurs hôtels,
-- rassembler les réponses,
-- appliquer éventuellement quelques règles simples (par exemple filtrer par ville, par prix, ou par disponibilité),
-- renvoyer au client une réponse unifiée.
+L’agence joue le rôle d’intermédiaire intelligent entre le client et les hôtels. Elle ne gère pas directement les chambres ni les réservations internes des établissements, mais elle orchestre les appels aux différents hôtels et présente au client une vue unifiée du système.
 
-Pour une recherche, l’agence envoie la même requête à tous les hôtels concernés. Elle collecte les résultats, les met au même format et les renvoie au client comme si tout venait d’un seul système. Pour une réservation, elle relaie la demande vers l’hôtel choisi.
+Sur le plan métier, on peut distinguer deux grands cas d’usage :
+- la recherche de chambres disponibles ;
+- la création et la consultation de réservations via un point central.
+
+Lorsqu’une demande de **recherche** arrive du client, l’agence commence par valider les informations (format des dates, présence des champs obligatoires) puis construit un objet de requête commun (par exemple un `RechercheRequest` interne) qui décrit les critères : ville ou adresse ciblée, dates d’arrivée et de départ, budget souhaité, nombre minimum de lits, nombre d’étoiles, etc. Cette requête est ensuite envoyée à tous les hôtels connus de l’agence, via un client multi-hôtels. Chaque hôtel répond avec ses propres chambres disponibles, et l’agence rassemble toutes ces réponses dans une liste homogène (sous forme de `ChambreDTO` contenant au passage le nom et l’adresse de l’hôtel). Le rôle de l’agence est donc de **fédérer** les résultats de plusieurs services distants pour donner au client une liste unique de possibilités.
+
+Pour une **réservation**, la logique métier de l’agence est légèrement différente : le client choisit d’abord une chambre (identifiée par un identifiant et des informations d’hôtel), puis fournit ses informations personnelles (nom, prénom, numéro de carte) et les dates souhaitées. L’agence encapsule ces données dans un objet de requête de réservation (par exemple un `ReservationRequest`), vérifie que les champs essentiels sont présents et cohérents, puis envoie cette requête vers les hôtels jusqu’à trouver celui qui possède la chambre visée et qui accepte la réservation. Si un hôtel confirme la réservation, l’agence récupère l’identifiant de réservation retourné et le renvoie au client avec un message de succès. Si aucun hôtel ne peut enregistrer la réservation (dates déjà prises, chambre introuvable, erreur technique), l’agence renvoie un message d’échec adapté, sans exposer les détails internes de chaque hôtel.
+
+En résumé, la logique métier de l’agence consiste à transformer des demandes simples du client en séries d’appels coordonnés vers plusieurs hôtels, à consolider les réponses et à gérer les cas d’erreur de manière centralisée. Le client bénéficie ainsi d’un point d’entrée unique, alors que le système repose en réalité sur plusieurs services hôteliers indépendants.
 
 3.2 Implémentation du SOAP
 L’agence expose elle aussi un service SOAP pour communiquer avec le client. Elle est donc à la fois consommatrice de services SOAP (ceux des hôtels) et fournisseuse d’un service SOAP (pour le client).
 
-Concrètement, l’agence publie son propre WSDL qui décrit les opérations offertes au client (recherche de chambres, réservation). Spring Boot et Spring-WS sont utilisés pour configurer un endpoint SOAP qui reçoit les requêtes du client, les transforme en objets Java et invoque la logique métier de l’agence. Pour appeler les hôtels, l’agence utilise des clients SOAP générés à partir des WSDL des différents services hôteliers : ces clients (stubs) se chargent de construire les messages SOAP, d’ouvrir la connexion réseau (HTTP), d’envoyer la requête et de convertir la réponse XML en objets Java.
+Concrètement, l’agence publie son propre WSDL qui décrit les opérations offertes au client (recherche de chambres, réservation, consultation des réservations par hôtel). Comme pour l’hôtel, des schémas XSD définissent la structure des messages échangés : requêtes de recherche, réponses contenant des listes de chambres, requêtes de réservation, réponses avec un identifiant de réservation et un message, etc. Spring Boot et Spring-WS sont utilisés pour configurer un endpoint SOAP (`AgenceEndpoint`) qui reçoit les requêtes du client, les transforme en objets Java (par exemple `RechercherChambresRequest`, `EffectuerReservationRequest`, `GetAllReservationsByHotelRequest`) et invoque la logique métier de l’agence à travers une classe de service (`AgenceService`).
 
-L’agence joue donc un double rôle : côté « serveur », elle valide les messages entrants, applique ses règles (par exemple agréger les résultats de plusieurs hôtels), et renvoie une réponse structurée ; côté « client », elle consomme les services SOAP des hôtels en respectant leurs contrats WSDL respectifs. Ce découplage permet d’ajouter ou de retirer facilement un hôtel sans modifier le client final, tant que les contrats SOAP restent compatibles.
+À la réception d’un message SOAP client, l’endpoint joue un rôle d’adaptateur : il convertit les objets générés par JAXB en **DTO internes** plus adaptés à la logique de l’agence (`RechercheRequest`, `ReservationRequest`, etc.), puis appelle les méthodes du service. Celui-ci utilise ensuite un client SOAP spécialisé (`MultiHotelSoapClient`) pour contacter chaque hôtel via leurs propres WSDL. Ces clients SOAP « côté agence » se chargent de construire les requêtes pour les hôtels (par exemple `RechercherChambresRequest` côté hôtel, `EffectuerReservationRequest`, `GetReservationsRequest`, `GetHotelInfoRequest`), d’envoyer les messages SOAP, de gérer les erreurs réseau éventuelles et de convertir les réponses XML en objets Java représentant les chambres ou les réservations de chaque hôtel.
+
+Après avoir reçu et agrégé les réponses des hôtels, l’agence reconstruit une réponse spécifique à son propre contrat SOAP. Par exemple, pour une recherche, elle convertit les `ChambreDTO` internes en objets SOAP `Chambre` adaptés au client, en y ajoutant le nom de l’hôtel, son adresse et éventuellement un lien d’image ; pour une consultation de réservations, elle regroupe les réservations par hôtel dans des structures comme `HotelReservations`. Cette réponse est ensuite sérialisée par Spring-WS en XML SOAP et renvoyée au client.
+
+L’agence joue donc un double rôle : côté « serveur SOAP », elle valide, adapte et structure les messages entrants et sortants selon son propre WSDL ; côté « client SOAP », elle consomme les services des hôtels en respectant leurs contrats WSDL. Cette architecture en étoile permet d’ajouter ou de retirer facilement un hôtel (en modifiant uniquement la configuration côté agence) sans changer la manière dont le client final interagit avec le système.
 
 4. Le client
 
 4.1 Logique métier
-Le client représente l’utilisateur final du système. Sa logique métier est volontairement simple : formuler une demande de recherche ou de réservation, envoyer cette demande à l’agence, lire la réponse et éventuellement confirmer une réservation.
+Le client représente l’utilisateur final du système. Sa logique métier est volontairement simple et centrée sur l’expérience utilisateur : formuler une demande, comprendre la réponse, et décider de réserver ou non.
 
-Pour simplifier le projet, l’interaction se fait en ligne de commande (CLI). L’utilisateur saisit les informations nécessaires (ville, dates, nombre de personnes, etc.), le client envoie la requête à l’agence puis affiche la réponse.
+Dans notre projet, le client ne gère pas lui-même de données complexes. Il délègue toute l’intelligence métier à l’agence et aux hôtels. Son rôle se limite à :
+- guider l’utilisateur dans la saisie des paramètres (ville, dates, nombre de personnes, budget, catégorie d’hôtel),
+- envoyer ces paramètres à l’agence sous la forme de requêtes SOAP,
+- afficher clairement les résultats de recherche (liste des chambres disponibles, avec prix, nombre de lits, nom de l’hôtel, adresse, lien d’image),
+- permettre à l’utilisateur de sélectionner une chambre et de confirmer une réservation en renseignant ses informations personnelles.
+
+La logique métier du client consiste donc surtout à enchaîner correctement ces étapes, à vérifier que les informations saisies sont cohérentes (par exemple éviter des dates vides ou un numéro de chambre inexistant) et à interpréter les réponses de l’agence (succès ou échec de la réservation, messages d’erreur, absence de résultats). Le client agit comme une « façade conviviale » : il traduit les écrans texte et les choix utilisateur en appels SOAP, puis traduit les réponses SOAP en informations lisibles.
 
 4.2 Comment ça fonctionne
-Le client est une application Spring Boot qui agit comme consommateur du service SOAP de l’agence. Il ne parle qu’avec l’agence, jamais directement avec les hôtels.
+Techniquement, le client est une application Spring Boot qui agit comme consommateur du service SOAP de l’agence. Il ne parle qu’avec l’agence, jamais directement avec les hôtels.
 
-Techniquement, le client utilise un proxy SOAP généré à partir du WSDL de l’agence. Ce proxy est un composant Java qui masque les détails du protocole : il sait construire les messages SOAP, gérer le transport HTTP, sérialiser les paramètres et désérialiser les réponses. Spring Boot démarre l’application, configure ce client SOAP (URL du service de l’agence, timeouts, marshaller/unmarshaller JAXB) et permet d’invoquer simplement des méthodes Java au lieu de manipuler directement du XML.
+Au démarrage, Spring Boot initialise un composant client SOAP configuré à partir du WSDL de l’agence. Ce composant est responsable de :
+- connaître l’URL du service SOAP de l’agence ;
+- utiliser un marshaller JAXB pour convertir les requêtes Java (par exemple `RechercherChambresRequest`, `EffectuerReservationRequest`, `GetAllReservationsByHotelRequest`) en messages SOAP XML ;
+- envoyer ces messages par HTTP et attendre la réponse ;
+- désérialiser la réponse XML en objets Java (`RechercherChambresResponse`, `EffectuerReservationResponse`, `GetAllReservationsByHotelResponse`).
 
-Lorsqu’on lance le client en ligne de commande, une classe de type CLI interagit avec l’utilisateur (lecture des paramètres, choix de l’hôtel, confirmation de la réservation) puis appelle le proxy SOAP de l’agence. La réponse SOAP est transformée en objets métiers (chambres, réservations, messages d’erreur éventuels), puis affichée de manière lisible. Le but est de masquer la complexité technique du SOAP et de proposer une expérience la plus simple possible : l’utilisateur voit uniquement des questions/réponses textuelles, tandis que tous les échanges structurés passent par le service SOAP de l’agence.
+Une classe dédiée à l’interface en ligne de commande (CLI) pilote cette mécanique. Elle affiche un menu, lit les entrées de l’utilisateur, construit les objets de requête SOAP appropriés, puis appelle le client SOAP. Lorsque la réponse arrive, elle extrait les informations utiles (chambres disponibles, identifiant de réservation, détails par hôtel) et les présente de manière simple : texte clair, listes numérotées, messages explicites en cas de date invalide ou de chambre déjà réservée. L’utilisateur n’a jamais à manipuler directement des URLs ou des messages XML : tout passe par cette interface textuelle, qui repose elle-même sur les appels SOAP à l’agence.
 
 5. L’image
 
@@ -79,7 +143,9 @@ Lorsqu’on lance le client en ligne de commande, une classe de type CLI interag
 L’image sert à rendre l’application plus attractive. Elle illustre un hôtel et aide à donner envie au client de réserver. Même si ce n’est pas indispensable pour la logique métier, c’est important pour l’expérience utilisateur.
 
 5.2 Mise en place
-L’image est fournie et servie localement. L’idée est de pouvoir l’afficher depuis le navigateur ou une interface future, en se connectant à l’application via `localhost`. Elle complète le système en apportant un élément visuel simple à intégrer par la suite.
+L’image est fournie et servie localement par le module Hôtellerie. Chaque serveur d’hôtel peut être associé à une image unique (par exemple une image pour l’hôtel de Paris, une pour Lyon, une pour Montpellier). Lorsqu’une chambre est renvoyée à l’agence, le service SOAP peut inclure, en plus des informations classiques (prix, nombre de lits, nom de la chambre), un lien vers cette image. L’agence transmet ensuite cette URL au client, qui l’affiche à côté des informations de la chambre.
+
+Dans le contexte de ce projet, l’image n’est pas encore affichée dans une interface graphique, mais le lien est déjà présent dans les données. Cela permettrait, dans une évolution future, d’ouvrir facilement ces images dans un navigateur web ou de les intégrer dans une application graphique sans modifier la logique de réservation. L’objectif est de préparer le terrain pour une interface plus riche, tout en conservant un fonctionnement simple en ligne de commande.
 
 6. Quickstart
 
