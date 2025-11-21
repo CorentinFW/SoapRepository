@@ -35,10 +35,10 @@ une classe pour l’hôtel, une pour les chambres, une pour les réservations et
 2.2 Implémentation du SOAP
 L’hôtel expose un service SOAP qui permet à l’agence de le contacter.
 Ce service propose des opérations pour rechercher des chambres disponibles et pour créer une réservation.
-Concrètement, l’hôtel définit un contrat de service (WSDL et schémas XSD) qui décrit les messages d’entrée et de sortie.
-Le serveur Spring Boot met ensuite ce service à disposition sur une URL.
-À chaque appel, l’hôtel reçoit une requête SOAP,
-applique sa logique métier (vérification de disponibilité, création de réservation) puis renvoie une réponse SOAP structurée.
+
+Sur le plan technique, l’hôtel définit d’abord un contrat de service à l’aide d’un WSDL (Web Services Description Language) et de schémas XSD. Ces fichiers décrivent de manière formelle la structure des messages (types, champs, formats) et les opérations disponibles (par exemple : rechercherChambres, reserverChambre). Les classes Java utilisées par le service sont générées automatiquement à partir de ces schémas (génération JAXB), ce qui garantit que les objets manipulés côté code correspondent exactement aux messages SOAP échangés.
+
+Le serveur Spring Boot intègre le module Spring-WS, qui publie ce service sur une URL spécifique (un endpoint SOAP). À chaque appel, le message SOAP est reçu, désérialisé en objets Java (unmarshal), puis transmis à une classe de service qui contient la logique métier : vérification des disponibilités, création d’une réservation, mise à jour des listes internes, etc. Une fois le traitement terminé, la réponse est construite sous forme d’objets Java, retransformée en XML SOAP (marshal) et renvoyée au consommateur. L’ensemble suit le contrat défini par le WSDL, ce qui assure l’interopérabilité et la robustesse des échanges.
 
 3. L’agence
 
@@ -55,7 +55,9 @@ Pour une recherche, l’agence envoie la même requête à tous les hôtels conc
 3.2 Implémentation du SOAP
 L’agence expose elle aussi un service SOAP pour communiquer avec le client. Elle est donc à la fois consommatrice de services SOAP (ceux des hôtels) et fournisseuse d’un service SOAP (pour le client).
 
-Le service SOAP de l’agence définit des opérations comme « rechercher des chambres » et « réserver une chambre ». Lorsqu’une requête arrive, l’agence traduit cette demande en appels vers chaque hôtel, attend leurs réponses et construit une réponse globale pour le client. Tout se fait via des messages SOAP normalisés afin de garder un échange robuste et bien défini.
+Concrètement, l’agence publie son propre WSDL qui décrit les opérations offertes au client (recherche de chambres, réservation). Spring Boot et Spring-WS sont utilisés pour configurer un endpoint SOAP qui reçoit les requêtes du client, les transforme en objets Java et invoque la logique métier de l’agence. Pour appeler les hôtels, l’agence utilise des clients SOAP générés à partir des WSDL des différents services hôteliers : ces clients (stubs) se chargent de construire les messages SOAP, d’ouvrir la connexion réseau (HTTP), d’envoyer la requête et de convertir la réponse XML en objets Java.
+
+L’agence joue donc un double rôle : côté « serveur », elle valide les messages entrants, applique ses règles (par exemple agréger les résultats de plusieurs hôtels), et renvoie une réponse structurée ; côté « client », elle consomme les services SOAP des hôtels en respectant leurs contrats WSDL respectifs. Ce découplage permet d’ajouter ou de retirer facilement un hôtel sans modifier le client final, tant que les contrats SOAP restent compatibles.
 
 4. Le client
 
@@ -67,7 +69,9 @@ Pour simplifier le projet, l’interaction se fait en ligne de commande (CLI). L
 4.2 Comment ça fonctionne
 Le client est une application Spring Boot qui agit comme consommateur du service SOAP de l’agence. Il ne parle qu’avec l’agence, jamais directement avec les hôtels.
 
-Lorsqu’on lance le client, celui-ci est configuré pour se connecter au service SOAP de l’agence. Il prépare les messages SOAP attendus, envoie la demande et transforme la réponse reçue en informations lisibles par l’utilisateur. Le but est de masquer toute la complexité technique et de proposer une utilisation la plus simple possible.
+Techniquement, le client utilise un proxy SOAP généré à partir du WSDL de l’agence. Ce proxy est un composant Java qui masque les détails du protocole : il sait construire les messages SOAP, gérer le transport HTTP, sérialiser les paramètres et désérialiser les réponses. Spring Boot démarre l’application, configure ce client SOAP (URL du service de l’agence, timeouts, marshaller/unmarshaller JAXB) et permet d’invoquer simplement des méthodes Java au lieu de manipuler directement du XML.
+
+Lorsqu’on lance le client en ligne de commande, une classe de type CLI interagit avec l’utilisateur (lecture des paramètres, choix de l’hôtel, confirmation de la réservation) puis appelle le proxy SOAP de l’agence. La réponse SOAP est transformée en objets métiers (chambres, réservations, messages d’erreur éventuels), puis affichée de manière lisible. Le but est de masquer la complexité technique du SOAP et de proposer une expérience la plus simple possible : l’utilisateur voit uniquement des questions/réponses textuelles, tandis que tous les échanges structurés passent par le service SOAP de l’agence.
 
 5. L’image
 
@@ -97,4 +101,3 @@ Ces évolutions feraient passer le projet d’un prototype pédagogique à un se
 Ce projet montre que SOAP reste une technologie intéressante lorsqu’on a besoin d’échanges fortement typés, avec des contrats bien définis entre services. Les messages sont structurés, validés par des schémas et les interactions sont clairement décrites.
 
 La séparation entre hôtel, agence et client offre une base solide pour un futur service déployable à plus grande échelle. Même si le projet reste simple, il propose déjà une architecture modulaire, extensible et conforme aux principes d’un système distribué.
-
